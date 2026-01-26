@@ -1,0 +1,20 @@
+[project]
+name = "pingv4"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [{ name = "lalitm1004", email = "lalitm1004@gmail.com" }]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+pingv4 = "pingv4:main"
+
+[tool.maturin]
+module-name = "pingv4._core"
+python-packages = ["pingv4"]
+python-source = "src"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
