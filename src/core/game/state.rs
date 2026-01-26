@@ -1,4 +1,4 @@
-use crate::connect_four::CellState;
+use crate::core::game::CellState;
 
 // marker trait
 pub trait GameState {}

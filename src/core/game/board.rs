@@ -1,4 +1,4 @@
-use crate::connect_four::{
+use crate::core::game::{
     state::{Draw, GameState, InProgress, Victory},
     CellState,
 };

@@ -1,5 +1,3 @@
-from pingv4._core import hello_from_bin
+from pingv4._core import ConnectFour
 
-
-def main() -> None:
-    print(hello_from_bin())
+__all__ = ["ConnectFour"]
