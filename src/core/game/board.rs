@@ -12,9 +12,9 @@ pub enum TurnResult<const R: usize, const C: usize> {
 
 #[derive(Debug, Clone)]
 pub struct Board<const R: usize, const C: usize, S: GameState> {
-    cell_states: [[Option<CellState>; C]; R],
+    cell_states: [[Option<CellState>; R]; C],
     game_state: S,
-    cached_hash: u64,
+    hash: u64,
 }
 
 impl<const R: usize, const C: usize, S: GameState> Board<R, C, S> {
@@ -24,78 +24,55 @@ impl<const R: usize, const C: usize, S: GameState> Board<R, C, S> {
     }
 
     #[inline]
-    pub const fn cell_states(&self) -> &[[Option<CellState>; C]; R] {
+    pub const fn cell_states(&self) -> &[[Option<CellState>; R]; C] {
         &self.cell_states
     }
 
     #[inline]
     pub fn hash(&self) -> u64 {
-        self.cached_hash
+        self.hash
     }
 
     #[inline]
-    pub fn update_hash(&mut self) {
-        self.cached_hash = self.get_board_hash();
+    fn update_hash(&mut self) {
+        self.hash = self.get_board_hash();
     }
 
-    pub fn get_column_hash(&self, col_idx: usize) -> u64 {
-        assert!(col_idx < C, "column index {} out of bounds", col_idx);
-
-        let mut hash = 0u64;
+    pub fn get_column_hash(column: &[Option<CellState>; R]) -> u64 {
+        let mut height = 0;
+        let mut hash_pattern = 0u64;
         
         for (pos, row_idx) in (0..R).rev().enumerate() {
-            if let Some(cell_state) = self.cell_states[row_idx][col_idx] {
+            if let Some(cell_state) = column[row_idx] {
                 let bit = match cell_state {
                     CellState::Yellow => 0,
                     CellState::Red => 1,
                 };
-                hash += bit << pos;
-            } else {
-                break;
-            }
-        }
-
-        hash
-    }
-
-    fn get_column_height(&self, col_idx: usize) -> usize {
-        assert!(col_idx < C, "column index {} out of bounds", col_idx);
-
-        let mut height = 0;
-        for row_idx in (0..R).rev() {
-            if self.cell_states[row_idx][col_idx].is_some() {
+                
+                hash_pattern += bit << pos;
                 height += 1;
             } else {
                 break;
             }
         }
 
-        height
+        let offset = if height > 0 {
+            (1u64 << height) - 1
+        } else {
+            0
+        };
+        
+        hash_pattern + offset
     }
 
     pub fn get_board_hash(&self) -> u64 {
-        let mut columns: Vec<(usize, u64, usize)> = (0..C)
+        let mut column_hashes: Vec<u64> = (0..C)
             .map(|col_idx| {
-                let height = self.get_column_height(col_idx);
-                let col_hash = self.get_column_hash(col_idx);
-                (height, col_hash, col_idx)
+                Self::get_column_hash(&self.cell_states[col_idx])
             })
             .collect();
 
-        columns.sort_by_key(|&(height, col_hash, _)| (height, col_hash));
-
-        let mut board_hash = 0u64;
-
-        for (height, col_hash, _) in columns {
-            let offset = if height > 0 {
-                (1u64 << height) - 1
-            } else {
-                0
-            };
-
-            board_hash += offset + col_hash;
-        }
-
-        board_hash
+        column_hashes.sort_unstable();
+        column_hashes.iter().sum()
     }
 }
