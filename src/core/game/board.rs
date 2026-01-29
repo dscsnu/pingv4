@@ -91,3 +91,18 @@ const fn compute_board_hash<const R: usize, const C: usize>(
 ) -> u64 {
     todo!()
 }
+
+impl<const R: usize, const C: usize> Default for Board<R, C, InProgress> {
+    fn default() -> Self {
+        let cell_states = [[None; R]; C];
+        let column_heights = [0; C];
+        let game_state = InProgress::new(CellState::Red);
+
+        Board {
+            cell_states,
+            column_heights,
+            game_state,
+            hash: 0,
+        }
+    }
+}

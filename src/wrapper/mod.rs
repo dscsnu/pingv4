@@ -2,19 +2,25 @@ use pyo3::prelude::*;
 
 use crate::core::game::{state, Board};
 
-const NUM_ROWS: usize = 6;
-const NUM_COLS: usize = 7;
-type ConnectFourBoard<S> = Board<NUM_ROWS, NUM_COLS, S>;
+const R: usize = 6;
+const C: usize = 7;
 
 enum GameWrapper {
-    Playing(ConnectFourBoard<state::InProgress>),
-    Victory(ConnectFourBoard<state::Victory>),
-    Draw(ConnectFourBoard<state::Draw>),
+    InProgress(Board<R, C, state::InProgress>),
+    Victory(Board<R, C, state::Victory>),
+    Draw(Board<R, C, state::Draw>),
 }
 
 #[pyclass]
 pub struct ConnectFour {
     inner: GameWrapper,
+}
+
+impl Default for GameWrapper {
+    #[inline]
+    fn default() -> Self {
+        GameWrapper::InProgress(Board::default())
+    }
 }
 
 #[pymethods]
