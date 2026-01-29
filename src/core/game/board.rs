@@ -68,10 +68,10 @@ pub(super) const fn compute_column_hash<const R: usize>(
     // ex: RYRY -> 1010
     while row_idx < R {
         match column[row_idx] {
-            Some(cell_state) => {
-                let bit = cell_state.to_bit();
-                bit_pattern |= bit << row_idx;
-            }
+            Some(cell_state) => match cell_state {
+                CellState::Red => bit_pattern |= 1 << row_idx,
+                CellState::Yellow => {}
+            },
             None => break,
         }
 
