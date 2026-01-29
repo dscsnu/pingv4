@@ -12,6 +12,8 @@ pub enum TurnResult<const R: usize, const C: usize> {
 
 #[derive(Debug, Clone)]
 pub struct Board<const R: usize, const C: usize, S: GameState> {
+    // column-major for cache optimization
+    // row-idx 0 is bottom row-idx R-1 is top
     cell_states: [[Option<CellState>; R]; C],
     column_heights: [usize; C],
     game_state: S,
@@ -24,7 +26,7 @@ impl<const R: usize, const C: usize, S: GameState> Board<R, C, S> {
         column_heights: [usize; C],
         game_state: NewState,
     ) -> Board<R, C, NewState> {
-        let hash = Board::<R, C, S>::compute_board_hash(&cell_states, &column_heights);
+        let hash = compute_board_hash::<R, C>(&cell_states, &column_heights);
 
         Board {
             cell_states,
@@ -53,36 +55,39 @@ impl<const R: usize, const C: usize, S: GameState> Board<R, C, S> {
     pub const fn hash(&self) -> u64 {
         self.hash
     }
+}
 
-    pub const fn compute_column_hash(column: &[Option<CellState>; R], height: usize) -> u64 {
-        let mut bit_pattern = 0;
-        let mut row_idx = 0;
+pub(super) const fn compute_column_hash<const R: usize>(
+    column: &[Option<CellState>; R],
+    height: usize,
+) -> u64 {
+    let mut bit_pattern = 0;
+    let mut row_idx = 0;
 
-        // bit_pattern of column
-        // ex: RYRY -> 1010
-        while row_idx < R {
-            match column[row_idx] {
-                Some(cell_state) => {
-                    let bit = cell_state.to_bit();
-                    bit_pattern |= bit << row_idx;
-                }
-                None => break,
+    // bit_pattern of column
+    // ex: RYRY -> 1010
+    while row_idx < R {
+        match column[row_idx] {
+            Some(cell_state) => {
+                let bit = cell_state.to_bit();
+                bit_pattern |= bit << row_idx;
             }
-
-            row_idx += 1;
+            None => break,
         }
 
-        // (2^col_height - 1)
-        let offset = if height > 0 { (1u64 << height) - 1 } else { 0 };
-
-        let hash = bit_pattern + offset;
-        hash
+        row_idx += 1;
     }
 
-    pub const fn compute_board_hash(
-        cell_states: &[[Option<CellState>; R]; C],
-        column_heights: &[usize; C],
-    ) -> u64 {
-        todo!()
-    }
+    // (2^col_height - 1)
+    let offset = if height > 0 { (1u64 << height) - 1 } else { 0 };
+
+    let hash = bit_pattern + offset;
+    hash
+}
+
+const fn compute_board_hash<const R: usize, const C: usize>(
+    cell_states: &[[Option<CellState>; R]; C],
+    column_heights: &[usize; C],
+) -> u64 {
+    todo!()
 }
