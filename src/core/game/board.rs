@@ -57,6 +57,17 @@ impl<const R: usize, const C: usize, S: GameState> Board<R, C, S> {
     }
 }
 
+impl<const R: usize, const C: usize> Board<R, C, InProgress> {
+    pub fn get_valid_moves(&self) -> Vec<usize> {
+        self.column_heights
+            .iter()
+            .enumerate()
+            .filter(|&(_, &height)| height < R)
+            .map(|(idx, _)| idx)
+            .collect()
+    }
+}
+
 pub(super) const fn compute_column_hash<const R: usize>(
     column: &[Option<CellState>; R],
     height: usize,
