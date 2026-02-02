@@ -63,11 +63,109 @@ class ConnectFourBoard:
         """
         ...
 
+    @property
+    def is_in_progress(self) -> bool:
+        """
+        Check if the game is still in progress.
+
+        :return: True if the game is in progress (no victory or draw), False otherwise.
+        :rtype: bool
+        """
+        ...
+
+    @property
+    def current_player(self) -> Optional[CellState]:
+        """
+        Get the current player whose turn it is.
+
+        :return: The current player if game is in progress, None otherwise.
+        :rtype: Optional[CellState]
+        """
+        ...
+
+    @property
+    def is_victory(self) -> bool:
+        """
+        Check if the game has ended in a victory.
+
+        :return: True if a player has won, False otherwise.
+        :rtype: bool
+        """
+        ...
+
+    @property
+    def winner(self) -> Optional[CellState]:
+        """
+        Get the winning player.
+
+        :return: The winning player if there is a victory, None otherwise.
+        :rtype: Optional[CellState]
+        """
+        ...
+
+    @property
+    def is_draw(self) -> bool:
+        """
+        Check if the game has ended in a draw.
+
+        :return: True if the board is full with no winner, False otherwise.
+        :rtype: bool
+        """
+        ...
+
+    @property
+    def cell_states(self) -> List[List[Optional[CellState]]]:
+        """
+        Return the state of all cells on the board.
+
+        .. warning::
+            Cell states are stored in **column-major** order. Access as
+            ``cell_states[col_idx][row_idx]`` where ``col_idx`` is the column
+            index (0-6) and ``row_idx`` is the row index (0-5, bottom to top).
+
+        :return: A nested list of cell states indexed by [column][row].
+        :rtype: List[List[Optional[CellState]]]
+        """
+        ...
+
+    def get_valid_moves(self) -> List[int]:
+        """
+        Return all moves that can be made given the current game state.
+
+        Returns empty list if game is in draw/victory state.
+
+        :return: A list of column indexes that are valid moves
+        :rtype: List[int]
+        """
+        ...
+
+    def make_move(self, col_idx: int) -> "ConnectFourBoard":
+        """
+        Make a move in the specified column.
+
+        Returns a new board with the move applied. The current board
+        remains unchanged (immutable).
+
+        :param col_idx: The zero-indexed column to drop the piece into.
+        :type col_idx: int
+        :return: A new board with the move applied.
+        :rtype: ConnectFourBoard
+        :raises ValueError: If column index is out of bounds, column is full,
+            or game is not in progress (victory/draw).
+        """
+        ...
+
     def __getitem__(self, idx: Tuple[int, int]) -> Optional[CellState]:
         """
         Return the state of a specific cell on the board.
 
-        :param idx: A zero-indexed (row, column) tuple identifying the cell.
+        .. warning::
+            Access is **column-major**: the first index is the column, the second
+            is the row. Use ``board[col_idx, row_idx]`` where ``col_idx`` is the
+            column (0-6) and ``row_idx`` is the row (0-5, bottom to top).
+
+        :param idx: A zero-indexed ``(col_idx, row_idx)`` tuple identifying the cell.
+        :type idx: Tuple[int, int]
         :return: The cell state if occupied, or None if the cell is empty.
         :rtype: Optional[CellState]
         """
@@ -94,5 +192,12 @@ class ConnectFourBoard:
         :param other: The object to compare against.
         :return: True if equal, False otherwise.
         :rtype: bool
+        """
+        ...
+
+    def __str__(self) -> str:
+        """
+        :return: The string representation of the board
+        :rtype: str
         """
         ...

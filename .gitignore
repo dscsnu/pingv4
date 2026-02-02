@@ -13,5 +13,3 @@ wheels/
 
 # Rust
 target/
-
-test.py
