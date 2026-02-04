@@ -13,6 +13,8 @@ BOARD_COLS = 7
 CELL_SIZE = 80
 BOARD_MARGIN_X = (WINDOW_WIDTH - BOARD_COLS * CELL_SIZE) // 2
 BOARD_MARGIN_Y = 100
+
+#Delay in seconds before a bot makes its move (to make it more visually appealing)
 BOT_DELAY_SECONDS = 1
 
 BACKGROUND_COLOR = (30, 30, 40)
