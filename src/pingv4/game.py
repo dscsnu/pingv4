@@ -1,10 +1,8 @@
 import random
-import sys
 from typing import Optional, Tuple, Type, Union
 
 import pygame
 
-sys.path.insert(0, str(__file__).rsplit("/", 1)[0] + "/src")
 from pingv4 import AbstractBot, CellState, ConnectFourBoard
 
 
@@ -15,7 +13,7 @@ BOARD_COLS = 7
 CELL_SIZE = 80
 BOARD_MARGIN_X = (WINDOW_WIDTH - BOARD_COLS * CELL_SIZE) // 2
 BOARD_MARGIN_Y = 100
-BOT_DELAY_SECONDS = 1 # Delay before bot makes a move (in seconds)
+BOT_DELAY_SECONDS = 1
 
 BACKGROUND_COLOR = (30, 30, 40)
 BOARD_COLOR = (0, 80, 180)
@@ -79,7 +77,7 @@ class Connect4Game:
         self.animation_color: Optional[Tuple[int, int, int]] = None
 
         print("=" * 50)
-        print("🪙 COIN FLIP RESULT 🪙")
+        print("COIN FLIP RESULT")
         print("=" * 50)
         print(f"Red (goes first): {self.red_player.strategy_name} by {self.red_player.author_name}")
         print(f"Yellow: {self.yellow_player.strategy_name} by {self.yellow_player.author_name}")
@@ -196,7 +194,7 @@ class Connect4Game:
             if self.winner_name == "Draw":
                 text = "Game Over - It's a Draw!"
             else:
-                text = f"🎉 {self.winner_name} Wins! 🎉"
+                text = f"{self.winner_name} Wins!"
             color = WIN_HIGHLIGHT_COLOR
         else:
             current = self.get_current_player()
@@ -237,12 +235,12 @@ class Connect4Game:
                 if col in self.board.get_valid_moves():
                     self.make_move(col)
                 else:
-                    print(f"⚠️ Bot {current_player.strategy_name} returned invalid move: {col}")
+                    print(f"Bot {current_player.strategy_name} returned invalid move: {col}")
                     valid_moves = self.board.get_valid_moves()
                     if valid_moves:
                         self.make_move(random.choice(valid_moves))
             except Exception as e:
-                print(f"⚠️ Bot {current_player.strategy_name} error: {e}")
+                print(f"Bot {current_player.strategy_name} error: {e}")
                 valid_moves = self.board.get_valid_moves()
                 if valid_moves:
                     self.make_move(random.choice(valid_moves))
@@ -284,7 +282,7 @@ class Connect4Game:
         self.animation_row_target = None
 
         print("\n" + "=" * 50)
-        print("🔄 NEW GAME - COIN FLIP 🪙")
+        print("NEW GAME - COIN FLIP")
         print("=" * 50)
         print(f"Red (goes first): {self.red_player.strategy_name}")
         print(f"Yellow: {self.yellow_player.strategy_name}")
