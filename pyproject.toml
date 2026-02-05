@@ -2,10 +2,31 @@
 name = "pingv4"
 version = "0.1.0"
 description = "A high-performance Connect Four library with a graphical game interface and bot framework."
+license = { text = "MIT" }
 readme = "README.md"
 authors = [{ name = "lalitm1004", email = "lalitm1004@gmail.com" }]
 requires-python = ">=3.9"
 dependencies = ["pydantic>=2.12.5", "pygame>=2.6.1"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
+
+
+[project.urls]
+Repository = "https://github.com/dscsnu/pingv4"
+Homepage = "https://github.com/dscsnu/pingv4"
+Issues = "https://github.com/dscsnu/pingv4/issues"
 
 [project.scripts]
 pingv4 = "pingv4:main"
