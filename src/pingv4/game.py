@@ -230,12 +230,15 @@ class Connect4Game:
                     winner = self.board.winner
                     if winner == CellState.Red:
                         self.winner_name = f"{self.red_player.strategy_name} (Red)"
+                        self.winner = 1 if self.player1_is_red else 2
                     else:
                         self.winner_name = (
                             f"{self.yellow_player.strategy_name} (Yellow)"
                         )
+                        self.winner = 2 if self.player1_is_red else 1
                 else:
                     self.winner_name = "Draw"
+                    self.winner = 0
 
         self.animating = False
         self.animation_col = None
