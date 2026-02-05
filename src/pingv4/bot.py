@@ -1,3 +1,4 @@
+import random
 from abc import ABC, abstractmethod
 from typing import Final
 
@@ -51,3 +52,24 @@ class AbstractBot(ABC):
         :rtype: int
         """
         raise NotImplementedError
+
+
+class RandomBot(AbstractBot):
+    def __init__(self, player: CellState) -> None:
+        super().__init__(player)
+
+    @property
+    def strategy_name(self) -> str:
+        return "RandomBot"
+
+    @property
+    def author_name(self) -> str:
+        return "SDIYBT"
+
+    @property
+    def author_netid(self) -> str:
+        return "SDIYBT"
+
+    def get_move(self, board: ConnectFourBoard) -> int:
+        valid_moves = board.get_valid_moves()
+        return random.choice(valid_moves)

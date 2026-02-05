@@ -5,7 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 authors = [{ name = "lalitm1004", email = "lalitm1004@gmail.com" }]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "pygame>=2.6.1",
+]
 
 [project.scripts]
 pingv4 = "pingv4:main"

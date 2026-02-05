@@ -14,7 +14,7 @@ CELL_SIZE = 80
 BOARD_MARGIN_X = (WINDOW_WIDTH - BOARD_COLS * CELL_SIZE) // 2
 BOARD_MARGIN_Y = 100
 
-#Delay in seconds before a bot makes its move (to make it more visually appealing)
+# Delay in seconds before a bot makes its move (to make it more visually appealing)
 BOT_DELAY_SECONDS = 1
 
 BACKGROUND_COLOR = (30, 30, 40)
@@ -81,8 +81,12 @@ class Connect4Game:
         print("=" * 50)
         print("COIN FLIP RESULT")
         print("=" * 50)
-        print(f"Red (goes first): {self.red_player.strategy_name} by {self.red_player.author_name}")
-        print(f"Yellow: {self.yellow_player.strategy_name} by {self.yellow_player.author_name}")
+        print(
+            f"Red (goes first): {self.red_player.strategy_name} by {self.red_player.author_name}"
+        )
+        print(
+            f"Yellow: {self.yellow_player.strategy_name} by {self.yellow_player.author_name}"
+        )
         print("=" * 50)
 
     def get_current_player(self) -> Union[ManualPlayer, AbstractBot]:
@@ -107,7 +111,9 @@ class Connect4Game:
         self.animation_col = col
         self.animation_row_target = self.board.column_heights[col]
         self.animation_y = BOARD_MARGIN_Y - CELL_SIZE
-        self.animation_color = RED_COLOR if self.board.current_player == CellState.Red else YELLOW_COLOR
+        self.animation_color = (
+            RED_COLOR if self.board.current_player == CellState.Red else YELLOW_COLOR
+        )
         self.last_move_col = col
 
         return True
@@ -123,7 +129,9 @@ class Connect4Game:
                     if winner == CellState.Red:
                         self.winner_name = f"{self.red_player.strategy_name} (Red)"
                     else:
-                        self.winner_name = f"{self.yellow_player.strategy_name} (Yellow)"
+                        self.winner_name = (
+                            f"{self.yellow_player.strategy_name} (Yellow)"
+                        )
                 else:
                     self.winner_name = "Draw"
 
@@ -135,7 +143,11 @@ class Connect4Game:
         if not self.animating or self.animation_row_target is None:
             return
 
-        target_y = BOARD_MARGIN_Y + (BOARD_ROWS - 1 - self.animation_row_target) * CELL_SIZE + CELL_SIZE // 2
+        target_y = (
+            BOARD_MARGIN_Y
+            + (BOARD_ROWS - 1 - self.animation_row_target) * CELL_SIZE
+            + CELL_SIZE // 2
+        )
         speed = 25
 
         self.animation_y += speed
@@ -169,18 +181,34 @@ class Connect4Game:
 
                 pygame.draw.circle(self.screen, color, (x, y), CELL_SIZE // 2 - 5)
 
-        if self.animating and self.animation_col is not None and self.animation_color is not None:
+        if (
+            self.animating
+            and self.animation_col is not None
+            and self.animation_color is not None
+        ):
             x = BOARD_MARGIN_X + self.animation_col * CELL_SIZE + CELL_SIZE // 2
-            pygame.draw.circle(self.screen, self.animation_color, (x, int(self.animation_y)), CELL_SIZE // 2 - 5)
+            pygame.draw.circle(
+                self.screen,
+                self.animation_color,
+                (x, int(self.animation_y)),
+                CELL_SIZE // 2 - 5,
+            )
 
     def draw_hover_indicator(self) -> None:
         if not self.is_manual_turn() or self.game_over or self.animating:
             return
 
-        if self.hover_col is not None and self.hover_col in self.board.get_valid_moves():
+        if (
+            self.hover_col is not None
+            and self.hover_col in self.board.get_valid_moves()
+        ):
             x = BOARD_MARGIN_X + self.hover_col * CELL_SIZE + CELL_SIZE // 2
             y = BOARD_MARGIN_Y - CELL_SIZE // 2
-            color = RED_COLOR if self.board.current_player == CellState.Red else YELLOW_COLOR
+            color = (
+                RED_COLOR
+                if self.board.current_player == CellState.Red
+                else YELLOW_COLOR
+            )
 
             preview_surface = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
             pygame.draw.circle(
@@ -200,9 +228,13 @@ class Connect4Game:
             color = WIN_HIGHLIGHT_COLOR
         else:
             current = self.get_current_player()
-            player_color = "Red" if self.board.current_player == CellState.Red else "Yellow"
+            player_color = (
+                "Red" if self.board.current_player == CellState.Red else "Yellow"
+            )
             if self.is_manual_turn():
-                text = f"{current.strategy_name}'s Turn ({player_color}) - Click to play"
+                text = (
+                    f"{current.strategy_name}'s Turn ({player_color}) - Click to play"
+                )
             else:
                 text = f"{current.strategy_name}'s Turn ({player_color}) - Thinking..."
             color = TEXT_COLOR
@@ -223,7 +255,9 @@ class Connect4Game:
         if self.game_over:
             restart_text = "Press R to restart or ESC to quit"
             restart_surface = self.small_font.render(restart_text, True, TEXT_COLOR)
-            restart_rect = restart_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT - 45))
+            restart_rect = restart_surface.get_rect(
+                center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT - 45)
+            )
             self.screen.blit(restart_surface, restart_rect)
 
     def handle_bot_turn(self) -> None:
@@ -237,7 +271,9 @@ class Connect4Game:
                 if col in self.board.get_valid_moves():
                     self.make_move(col)
                 else:
-                    print(f"Bot {current_player.strategy_name} returned invalid move: {col}")
+                    print(
+                        f"Bot {current_player.strategy_name} returned invalid move: {col}"
+                    )
                     valid_moves = self.board.get_valid_moves()
                     if valid_moves:
                         self.make_move(random.choice(valid_moves))
@@ -310,7 +346,12 @@ class Connect4Game:
                     self.hover_col = self.get_col_from_mouse(mouse_x)
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1 and self.is_manual_turn() and not self.game_over and not self.animating:
+                    if (
+                        event.button == 1
+                        and self.is_manual_turn()
+                        and not self.game_over
+                        and not self.animating
+                    ):
                         mouse_x, _ = event.pos
                         col = self.get_col_from_mouse(mouse_x)
                         if col is not None:
