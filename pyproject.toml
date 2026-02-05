@@ -1,14 +1,11 @@
 [project]
 name = "pingv4"
 version = "0.1.0"
-description = "Add your description here"
+description = "A high-performance Connect Four library with a graphical game interface and bot framework."
 readme = "README.md"
 authors = [{ name = "lalitm1004", email = "lalitm1004@gmail.com" }]
 requires-python = ">=3.9"
-dependencies = [
-    "pydantic>=2.12.5",
-    "pygame>=2.6.1",
-]
+dependencies = ["pydantic>=2.12.5", "pygame>=2.6.1"]
 
 [project.scripts]
 pingv4 = "pingv4:main"
