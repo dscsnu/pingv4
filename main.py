@@ -23,16 +23,16 @@ import pingv4
 SUBMISSION_PATH = os.path.join("submissions")
 BOT_CLASS = pingv4.AbstractBot
 IGNORE = ["__init__.py"]
+POPULATION_FILE = "population.txt"
 
 console = Console()
 
 
 # ==================== Pydantic MODELS ====================
 
-
 class GameResult(BaseModel):
     game_number: int
-    winner: Optional[str]  # None for draw
+    winner: Optional[str]
 
 
 class MatchResult(BaseModel):
@@ -59,12 +59,7 @@ class TournamentResult(BaseModel):
 
 # ==================== HELPERS ====================
 
-
 def bot_label(bot_cls):
-    """
-    Match pingv4's printing exactly:
-    '<strategy_name> by <author_name>'
-    """
     try:
         bot = bot_cls(player=pingv4.CellState.Red)
         return bot.strategy_name, bot.author_name
@@ -72,19 +67,47 @@ def bot_label(bot_cls):
         return bot_cls.__name__, "Unknown"
 
 
-# ==================== LOADER ====================
+def read_population_file(path: str) -> List[str]:
+    if not os.path.exists(path):
+        return []
 
+    with open(path, "r") as f:
+        lines = [line.strip() for line in f.readlines()]
+
+    return [l for l in lines if l]
+
+
+def write_population_file(path: str, filenames: List[str]):
+    with open(path, "w") as f:
+        for name in filenames:
+            f.write(f"{name}\n")
+
+
+# ==================== LOADER ====================
 
 def load_and_instantiate(
     directory: str = SUBMISSION_PATH,
     base_class: Type = BOT_CLASS,
     exclude_files: List[str] = IGNORE,
-) -> List[Any]:
-    bots = []
+    population_file: str = POPULATION_FILE,
+) -> dict[type[Any], str]:
+
     directory_path = Path(directory)
+    requested_files = read_population_file(population_file)
+
+    if requested_files:
+        py_files = [directory_path / f for f in requested_files]
+    else:
+        py_files = list(directory_path.glob("*.py"))
+
+    population: dict[type[Any], str] = {}
 
     with console.status("[bold cyan]Loading bot submissions...", spinner="dots"):
-        for py_file in directory_path.glob("*.py"):
+        for py_file in py_files:
+            if not py_file.exists():
+                console.print(f"[red]Missing file:[/] {py_file.name}")
+                continue
+
             if py_file.name in exclude_files:
                 continue
 
@@ -97,20 +120,22 @@ def load_and_instantiate(
                 spec.loader.exec_module(module)
 
                 for _, obj in inspect.getmembers(module, inspect.isclass):
-                    if issubclass(obj, base_class) and obj is not base_class:
-                        if obj.__module__ == module_name:
-                            bots.append(obj)
-                            strat, author = bot_label(obj)
-                            console.print(
-                                f"  ✓ Loaded [bold green]{strat}[/] by [cyan]{author}[/]"
-                            )
+                    if (
+                        issubclass(obj, base_class)
+                        and obj is not base_class
+                        and obj.__module__ == module_name
+                    ):
+                        population[obj] = py_file.name
+                        strat, author = bot_label(obj)
+                        console.print(
+                            f"  ✓ Loaded [bold green]{strat}[/] by [cyan]{author}[/]"
+                        )
 
-    console.print(f"\n[bold]Total bots loaded:[/] [green]{len(bots)}[/]\n")
-    return bots
+    console.print(f"\n[bold]Total bots loaded:[/] [green]{len(population)}[/]\n")
+    return population
 
 
 # ==================== DISPLAY ====================
-
 
 def display_matchup(player_1, player_2, round_num):
     table = Table(show_header=False, box=box.DOUBLE_EDGE, border_style="bright_blue")
@@ -139,9 +164,9 @@ def display_matchup(player_1, player_2, round_num):
 def display_game_result(game_num, winner_class):
     if winner_class:
         strat, _ = bot_label(winner_class)
-        console.print(f"  Game {game_num}: [bold green]{strat}[/] wins! 🎯")
+        console.print(f"  Game {game_num}: [bold green]{strat}[/] wins!")
     else:
-        console.print(f"  Game {game_num}: [bold yellow]Draw[/] ⚖️")
+        console.print(f"  Game {game_num}: [bold yellow]Draw[/]")
 
 
 def display_match_winner(winner, score):
@@ -156,8 +181,7 @@ def display_match_winner(winner, score):
 
 # ==================== TOURNAMENT ====================
 
-
-def pair(population: list[type[pingv4.AbstractBot]]):
+def pair(population: dict[type[pingv4.AbstractBot], str]):
     round_num = 1
     tournament_rounds: List[RoundState] = []
 
@@ -176,15 +200,20 @@ def pair(population: list[type[pingv4.AbstractBot]]):
         )
         console.print(f"[bold yellow]{'=' * 70}[/]\n")
 
-        round_population = [bot_label(b)[0] for b in population]
+        round_population = list(population.values())
+        write_population_file(POPULATION_FILE, round_population)
+
         round_matches: List[MatchResult] = []
 
-        if len(population) % 2 == 1:
-            console.print("[yellow]Odd number of bots - adding RandomBot[/]\n")
-            population.append(pingv4.RandomBot)
+        bot_classes = list(population.keys())
 
-        random.shuffle(population)
-        pairs = list(zip(population[::2], population[1::2]))
+        if len(bot_classes) % 2 == 1:
+            console.print("[yellow]Odd number of bots - adding RandomBot[/]\n")
+            population[pingv4.RandomBot] = "__builtin__"
+            bot_classes.append(pingv4.RandomBot)
+
+        random.shuffle(bot_classes)
+        pairs = list(zip(bot_classes[::2], bot_classes[1::2]))
 
         for match_num, (player_1, player_2) in enumerate(pairs, 1):
             console.print(f"\n[bold]Match {match_num}/{len(pairs)}[/]")
@@ -229,11 +258,13 @@ def pair(population: list[type[pingv4.AbstractBot]]):
             if wins_1 > wins_2:
                 match_winner = p1_name
                 display_match_winner(player_1, f"{wins_1}-{wins_2}")
-                population.remove(player_2)
+                population.pop(player_2, None)
+
             elif wins_2 > wins_1:
                 match_winner = p2_name
                 display_match_winner(player_2, f"{wins_2}-{wins_1}")
-                population.remove(player_1)
+                population.pop(player_1, None)
+
             else:
                 console.print(
                     "[yellow]Tie match![/]\n"
@@ -252,29 +283,20 @@ def pair(population: list[type[pingv4.AbstractBot]]):
                     except ValueError:
                         pass
 
-                    console.print("[red]Invalid input. Enter 1, 2, 0, or -1.[/]")
+                    console.print("[red]Invalid input.[/]")
 
                 match choice:
                     case 1:
                         match_winner = p1_name
-                        display_match_winner(player_1, f"{wins_1}-{wins_2}")
-                        population.remove(player_2)
-
+                        population.pop(player_2, None)
                     case 2:
                         match_winner = p2_name
-                        display_match_winner(player_2, f"{wins_2}-{wins_1}")
-                        population.remove(player_1)
-
+                        population.pop(player_1, None)
                     case 0:
-                        console.print("[red]Both players eliminated.[/]")
-                        population.remove(player_1)
-                        population.remove(player_2)
-
+                        population.pop(player_1, None)
+                        population.pop(player_2, None)
                     case -1:
-                        console.print("[green]Both players advance.[/]")
-
-                    case _:
-                        console.print("[green]Both players advance.[/]")
+                        pass
 
             round_matches.append(
                 MatchResult(
@@ -300,7 +322,7 @@ def pair(population: list[type[pingv4.AbstractBot]]):
 
         round_num += 1
 
-    champion = population[0]
+    champion = next(iter(population))
     champ_name, champ_author = bot_label(champion)
 
     console.print(
@@ -332,13 +354,13 @@ if __name__ == "__main__":
     console.clear()
 
     try:
-        bots = load_and_instantiate()
+        population = load_and_instantiate()
 
-        if len(bots) < 2:
+        if len(population) < 2:
             console.print("[red]Need at least 2 bots[/]")
             sys.exit(1)
 
-        pair(bots)
+        pair(population)
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Tournament interrupted[/]")
