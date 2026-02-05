@@ -230,7 +230,46 @@ def pair(population: list[type[pingv4.AbstractBot]]):
                 display_match_winner(player_2, f"{wins_2}-{wins_1}")
                 population.remove(player_1)
             else:
-                console.print("[yellow]Tie match — both advance[/]")
+                console.print(
+                    "[yellow]Tie match![/]\n"
+                    "[dim]Choose outcome:[/]\n"
+                    "  [cyan]1[/]  → Player 1 advances\n"
+                    "  [cyan]2[/]  → Player 2 advances\n"
+                    "  [cyan]0[/]  → Neither advances\n"
+                    "  [cyan]-1[/] → Both advance\n"
+                        )
+            
+                while True:
+                    try:
+                        choice = int(console.input("[bold]Your choice → [/]").strip())
+                        if choice in {1, 2, 0, -1}:
+                            break
+                    except ValueError:
+                        pass
+            
+                    console.print("[red]Invalid input. Enter 1, 2, 0, or -1.[/]")
+            
+                match choice:
+                    case 1:
+                        match_winner = p1_name
+                        display_match_winner(player_1, f"{wins_1}-{wins_2}")
+                        population.remove(player_2)
+            
+                    case 2:
+                        match_winner = p2_name
+                        display_match_winner(player_2, f"{wins_2}-{wins_1}")
+                        population.remove(player_1)
+            
+                    case 0:
+                        console.print("[red]Both players eliminated.[/]")
+                        population.remove(player_1)
+                        population.remove(player_2)
+            
+                    case -1:
+                        console.print("[green]Both players advance.[/]")
+            
+                    case _:
+                        console.print("[green]Both players advance.[/]")
 
             round_matches.append(
                 MatchResult(
