@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A high-performance Connect Four library with a graphical game interface and bot framework."
 license = { text = "MIT" }
 readme = "README.md"
-authors = [{ name = "lalitm1004", email = "lalitm1004@gmail.com" }, { name="Rohit J G", email="jgrohit.exe@gmail.com" }]
+authors = [{ name = "lalitm1004", email = "lalitm1004@gmail.com" }, { name="Rohit J G", email="jgrohit.exe@gmail.com" }, { name = "Daksh Jain", email = "jaindaksh006@gmail.com" }]
 requires-python = ">=3.9"
 dependencies = ["pydantic>=2.12.5", "pygame>=2.6.1"]
 classifiers = [
