@@ -1,33 +1,55 @@
-import random
-from typing import Optional, Tuple, Type, Union
-
 import pygame
+import random
+from pydantic import BaseModel
+from typing import Optional, Tuple, Type, Union
 
 from pingv4 import AbstractBot, CellState, ConnectFourBoard
 
 
-WINDOW_WIDTH = 700
-WINDOW_HEIGHT = 700
-BOARD_ROWS = 6
-BOARD_COLS = 7
-CELL_SIZE = 80
-BOARD_MARGIN_X = (WINDOW_WIDTH - BOARD_COLS * CELL_SIZE) // 2
-BOARD_MARGIN_Y = 100
+class GameConfig(BaseModel, frozen=True):
+    """Configuration options for Connect4Game."""
 
-# Delay in seconds before a bot makes its move (to make it more visually appealing)
-BOT_DELAY_SECONDS = 1
+    # Bot timing
+    bot_delay_seconds: float = 1.0
 
-BACKGROUND_COLOR = (30, 30, 40)
-BOARD_COLOR = (0, 80, 180)
-EMPTY_COLOR = (20, 20, 30)
-RED_COLOR = (220, 50, 50)
-YELLOW_COLOR = (240, 220, 50)
-HOVER_COLOR = (100, 100, 120)
-TEXT_COLOR = (255, 255, 255)
-WIN_HIGHLIGHT_COLOR = (50, 255, 50)
+    # Animation
+    animation_speed: int = 25
+
+    # Window dimensions
+    window_width: int = 700
+    window_height: int = 700
+
+    # Board display
+    cell_size: int = 80
+
+    # Board constants
+    board_rows: int = 6
+    board_cols: int = 7
+
+    # Colors
+    background_color: Tuple[int, int, int] = (30, 30, 40)
+    board_color: Tuple[int, int, int] = (0, 80, 180)
+    empty_color: Tuple[int, int, int] = (20, 20, 30)
+    red_color: Tuple[int, int, int] = (220, 50, 50)
+    yellow_color: Tuple[int, int, int] = (240, 220, 50)
+    hover_color: Tuple[int, int, int] = (100, 100, 120)
+    text_color: Tuple[int, int, int] = (255, 255, 255)
+    win_highlight_color: Tuple[int, int, int] = (50, 255, 50)
+
+    @property
+    def board_margin_x(self) -> int:
+        """Calculate horizontal margin to center the board."""
+        return (self.window_width - self.board_cols * self.cell_size) // 2
+
+    @property
+    def board_margin_y(self) -> int:
+        """Vertical margin from top of window."""
+        return 100
 
 
 class ManualPlayer:
+    """Represents a human player who makes moves manually."""
+
     def __init__(self, player: CellState) -> None:
         self.player = player
         self.strategy_name = "Manual Player"
@@ -35,37 +57,73 @@ class ManualPlayer:
         self.author_netid = "N/A"
 
 
+# Player can be specified as:
+# - None (manual player)
+# - AbstractBot subclass (will be instantiated with the assigned color)
+# - ManualPlayer instance
+PlayerConfig = Union[None, Type[AbstractBot], ManualPlayer]
+
+
 class Connect4Game:
+    """
+    A graphical Connect Four game supporting both human and bot players.
+
+    Initialize with player configurations and optional game settings:
+
+    Examples:
+        # Two manual players
+        game = Connect4Game()
+        game.run()
+
+        # Bot vs bot with custom timing
+        config = GameConfig(bot_delay_seconds=0.5)
+        game = Connect4Game(player1=RandomBot, player2=RandomBot, config=config)
+        game.run()
+
+        # Manual player vs bot
+        game = Connect4Game(player1=None, player2=RandomBot)
+        game.run()
+    """
+
     def __init__(
         self,
-        bot1: Optional[Type[AbstractBot]] = None,
-        bot2: Optional[Type[AbstractBot]] = None,
+        player1: PlayerConfig = None,
+        player2: PlayerConfig = None,
+        config: Optional[GameConfig] = None,
     ) -> None:
+        """
+        Initialize a Connect Four game.
+
+        Args:
+            player1: First player - None for manual, or an AbstractBot subclass.
+            player2: Second player - None for manual, or an AbstractBot subclass.
+            config: Game configuration options. Uses defaults if not provided.
+        """
+        self.config = config or GameConfig()
+        self._player1_config = player1
+        self._player2_config = player2
+
         pygame.init()
-        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.screen = pygame.display.set_mode(
+            (self.config.window_width, self.config.window_height)
+        )
         pygame.display.set_caption("Connect Four")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
         self.small_font = pygame.font.Font(None, 28)
 
+        # Randomly assign colors to players
         self.player1_is_red = random.choice([True, False])
 
         if self.player1_is_red:
-            red_bot_class = bot1
-            yellow_bot_class = bot2
+            red_config = player1
+            yellow_config = player2
         else:
-            red_bot_class = bot2
-            yellow_bot_class = bot1
+            red_config = player2
+            yellow_config = player1
 
-        if red_bot_class is not None:
-            self.red_player = red_bot_class(CellState.Red)
-        else:
-            self.red_player = ManualPlayer(CellState.Red)
-
-        if yellow_bot_class is not None:
-            self.yellow_player = yellow_bot_class(CellState.Yellow)
-        else:
-            self.yellow_player = ManualPlayer(CellState.Yellow)
+        self.red_player = self._resolve_player(red_config, CellState.Red)
+        self.yellow_player = self._resolve_player(yellow_config, CellState.Yellow)
 
         self.board = ConnectFourBoard()
         self.hover_col: Optional[int] = None
@@ -89,36 +147,80 @@ class Connect4Game:
         )
         print("=" * 50)
 
+    def _resolve_player(
+        self, player_config: PlayerConfig, color: CellState
+    ) -> Union[ManualPlayer, AbstractBot]:
+        """
+        Convert PlayerConfig to a player instance.
+
+        Args:
+            player_config: The player configuration.
+            color: The CellState color to assign.
+
+        Returns:
+            A ManualPlayer or AbstractBot instance.
+
+        Raises:
+            TypeError: If player_config is an invalid type.
+        """
+        if player_config is None:
+            return ManualPlayer(color)
+        elif isinstance(player_config, ManualPlayer):
+            return player_config
+        elif isinstance(player_config, type) and issubclass(player_config, AbstractBot):
+            # Bot class provided - instantiate with color
+            return player_config(color)
+        else:
+            raise TypeError(f"Invalid player config type: {type(player_config)}")
+
     def get_current_player(self) -> Union[ManualPlayer, AbstractBot]:
+        """Get the player whose turn it currently is."""
         if self.board.current_player == CellState.Red:
             return self.red_player
         return self.yellow_player
 
     def is_manual_turn(self) -> bool:
+        """Check if the current turn belongs to a manual player."""
         return isinstance(self.get_current_player(), ManualPlayer)
 
     def get_col_from_mouse(self, mouse_x: int) -> Optional[int]:
-        if BOARD_MARGIN_X <= mouse_x < BOARD_MARGIN_X + BOARD_COLS * CELL_SIZE:
-            col = (mouse_x - BOARD_MARGIN_X) // CELL_SIZE
+        """Convert mouse x-coordinate to board column index."""
+        cfg = self.config
+        if (
+            cfg.board_margin_x
+            <= mouse_x
+            < cfg.board_margin_x + cfg.board_cols * cfg.cell_size
+        ):
+            col = (mouse_x - cfg.board_margin_x) // cfg.cell_size
             return col
         return None
 
     def make_move(self, col: int) -> bool:
+        """
+        Initiate a move animation for the specified column.
+
+        Returns:
+            True if the move is valid and animation started, False otherwise.
+        """
         if col not in self.board.get_valid_moves():
             return False
 
+        cfg = self.config
         self.animating = True
         self.animation_col = col
         self.animation_row_target = self.board.column_heights[col]
-        self.animation_y = BOARD_MARGIN_Y - CELL_SIZE
+        self.animation_y = cfg.board_margin_y - cfg.cell_size
         self.animation_color = (
-            RED_COLOR if self.board.current_player == CellState.Red else YELLOW_COLOR
+            cfg.red_color
+            if self.board.current_player == CellState.Red
+            else cfg.yellow_color
         )
         self.last_move_col = col
 
         return True
 
     def finish_move(self) -> None:
+        """Complete the current move after animation finishes."""
         if self.animation_col is not None:
             self.board = self.board.make_move(self.animation_col)
 
@@ -140,92 +242,107 @@ class Connect4Game:
         self.animation_row_target = None
 
     def update_animation(self) -> None:
+        """Update the falling piece animation."""
         if not self.animating or self.animation_row_target is None:
             return
 
+        cfg = self.config
         target_y = (
-            BOARD_MARGIN_Y
-            + (BOARD_ROWS - 1 - self.animation_row_target) * CELL_SIZE
-            + CELL_SIZE // 2
+            cfg.board_margin_y
+            + (cfg.board_rows - 1 - self.animation_row_target) * cfg.cell_size
+            + cfg.cell_size // 2
         )
-        speed = 25
 
-        self.animation_y += speed
+        self.animation_y += cfg.animation_speed
         if self.animation_y >= target_y:
             self.animation_y = target_y
             self.finish_move()
 
     def draw_board(self) -> None:
+        """Draw the game board and all pieces."""
+        cfg = self.config
         board_rect = pygame.Rect(
-            BOARD_MARGIN_X - 10,
-            BOARD_MARGIN_Y - 10,
-            BOARD_COLS * CELL_SIZE + 20,
-            BOARD_ROWS * CELL_SIZE + 20,
+            cfg.board_margin_x - 10,
+            cfg.board_margin_y - 10,
+            cfg.board_cols * cfg.cell_size + 20,
+            cfg.board_rows * cfg.cell_size + 20,
         )
-        pygame.draw.rect(self.screen, BOARD_COLOR, board_rect, border_radius=10)
+        pygame.draw.rect(self.screen, cfg.board_color, board_rect, border_radius=10)
 
         cell_states = self.board.cell_states
-        for col in range(BOARD_COLS):
-            for row in range(BOARD_ROWS):
-                screen_row = BOARD_ROWS - 1 - row
-                x = BOARD_MARGIN_X + col * CELL_SIZE + CELL_SIZE // 2
-                y = BOARD_MARGIN_Y + screen_row * CELL_SIZE + CELL_SIZE // 2
+        for col in range(cfg.board_cols):
+            for row in range(cfg.board_rows):
+                screen_row = cfg.board_rows - 1 - row
+                x = cfg.board_margin_x + col * cfg.cell_size + cfg.cell_size // 2
+                y = cfg.board_margin_y + screen_row * cfg.cell_size + cfg.cell_size // 2
 
                 cell = cell_states[col][row]
                 if cell == CellState.Red:
-                    color = RED_COLOR
+                    color = cfg.red_color
                 elif cell == CellState.Yellow:
-                    color = YELLOW_COLOR
+                    color = cfg.yellow_color
                 else:
-                    color = EMPTY_COLOR
+                    color = cfg.empty_color
 
-                pygame.draw.circle(self.screen, color, (x, y), CELL_SIZE // 2 - 5)
+                pygame.draw.circle(self.screen, color, (x, y), cfg.cell_size // 2 - 5)
 
         if (
             self.animating
             and self.animation_col is not None
             and self.animation_color is not None
         ):
-            x = BOARD_MARGIN_X + self.animation_col * CELL_SIZE + CELL_SIZE // 2
+            x = (
+                cfg.board_margin_x
+                + self.animation_col * cfg.cell_size
+                + cfg.cell_size // 2
+            )
             pygame.draw.circle(
                 self.screen,
                 self.animation_color,
                 (x, int(self.animation_y)),
-                CELL_SIZE // 2 - 5,
+                cfg.cell_size // 2 - 5,
             )
 
     def draw_hover_indicator(self) -> None:
+        """Draw the hover preview for manual players."""
         if not self.is_manual_turn() or self.game_over or self.animating:
             return
 
+        cfg = self.config
         if (
             self.hover_col is not None
             and self.hover_col in self.board.get_valid_moves()
         ):
-            x = BOARD_MARGIN_X + self.hover_col * CELL_SIZE + CELL_SIZE // 2
-            y = BOARD_MARGIN_Y - CELL_SIZE // 2
+            x = cfg.board_margin_x + self.hover_col * cfg.cell_size + cfg.cell_size // 2
+            y = cfg.board_margin_y - cfg.cell_size // 2
             color = (
-                RED_COLOR
+                cfg.red_color
                 if self.board.current_player == CellState.Red
-                else YELLOW_COLOR
+                else cfg.yellow_color
             )
 
-            preview_surface = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+            preview_surface = pygame.Surface(
+                (cfg.cell_size, cfg.cell_size), pygame.SRCALPHA
+            )
             pygame.draw.circle(
                 preview_surface,
                 (*color, 150),
-                (CELL_SIZE // 2, CELL_SIZE // 2),
-                CELL_SIZE // 2 - 5,
+                (cfg.cell_size // 2, cfg.cell_size // 2),
+                cfg.cell_size // 2 - 5,
             )
-            self.screen.blit(preview_surface, (x - CELL_SIZE // 2, y - CELL_SIZE // 2))
+            self.screen.blit(
+                preview_surface, (x - cfg.cell_size // 2, y - cfg.cell_size // 2)
+            )
 
     def draw_status(self) -> None:
+        """Draw the game status text."""
+        cfg = self.config
         if self.game_over:
             if self.winner_name == "Draw":
                 text = "Game Over - It's a Draw!"
             else:
                 text = f"{self.winner_name} Wins!"
-            color = WIN_HIGHLIGHT_COLOR
+            color = cfg.win_highlight_color
         else:
             current = self.get_current_player()
             player_color = (
@@ -237,30 +354,31 @@ class Connect4Game:
                 )
             else:
                 text = f"{current.strategy_name}'s Turn ({player_color}) - Thinking..."
-            color = TEXT_COLOR
+            color = cfg.text_color
 
         text_surface = self.font.render(text, True, color)
-        text_rect = text_surface.get_rect(center=(WINDOW_WIDTH // 2, 40))
+        text_rect = text_surface.get_rect(center=(cfg.window_width // 2, 40))
         self.screen.blit(text_surface, text_rect)
 
         red_info = f"Red: {self.red_player.strategy_name}"
         yellow_info = f"Yellow: {self.yellow_player.strategy_name}"
 
-        red_surface = self.small_font.render(red_info, True, RED_COLOR)
-        yellow_surface = self.small_font.render(yellow_info, True, YELLOW_COLOR)
+        red_surface = self.small_font.render(red_info, True, cfg.red_color)
+        yellow_surface = self.small_font.render(yellow_info, True, cfg.yellow_color)
 
-        self.screen.blit(red_surface, (20, WINDOW_HEIGHT - 60))
-        self.screen.blit(yellow_surface, (20, WINDOW_HEIGHT - 30))
+        self.screen.blit(red_surface, (20, cfg.window_height - 60))
+        self.screen.blit(yellow_surface, (20, cfg.window_height - 30))
 
         if self.game_over:
             restart_text = "Press R to restart or ESC to quit"
-            restart_surface = self.small_font.render(restart_text, True, TEXT_COLOR)
+            restart_surface = self.small_font.render(restart_text, True, cfg.text_color)
             restart_rect = restart_surface.get_rect(
-                center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT - 45)
+                center=(cfg.window_width // 2, cfg.window_height - 45)
             )
             self.screen.blit(restart_surface, restart_rect)
 
     def handle_bot_turn(self) -> None:
+        """Handle the bot's turn by getting and executing its move."""
         if self.game_over or self.animating or self.is_manual_turn():
             return
 
@@ -284,31 +402,18 @@ class Connect4Game:
                     self.make_move(random.choice(valid_moves))
 
     def reset_game(self) -> None:
+        """Reset the game to initial state with new color assignment."""
         self.player1_is_red = random.choice([True, False])
-        old_red = self.red_player
-        old_yellow = self.yellow_player
-
-        red_was_bot = not isinstance(old_red, ManualPlayer)
-        yellow_was_bot = not isinstance(old_yellow, ManualPlayer)
 
         if self.player1_is_red:
-            if red_was_bot:
-                self.red_player = type(old_red)(CellState.Red)
-            else:
-                self.red_player = ManualPlayer(CellState.Red)
-            if yellow_was_bot:
-                self.yellow_player = type(old_yellow)(CellState.Yellow)
-            else:
-                self.yellow_player = ManualPlayer(CellState.Yellow)
+            red_config = self._player1_config
+            yellow_config = self._player2_config
         else:
-            if yellow_was_bot:
-                self.red_player = type(old_yellow)(CellState.Red)
-            else:
-                self.red_player = ManualPlayer(CellState.Red)
-            if red_was_bot:
-                self.yellow_player = type(old_red)(CellState.Yellow)
-            else:
-                self.yellow_player = ManualPlayer(CellState.Yellow)
+            red_config = self._player2_config
+            yellow_config = self._player1_config
+
+        self.red_player = self._resolve_player(red_config, CellState.Red)
+        self.yellow_player = self._resolve_player(yellow_config, CellState.Yellow)
 
         self.board = ConnectFourBoard()
         self.hover_col = None
@@ -327,6 +432,7 @@ class Connect4Game:
         print("=" * 50)
 
     def run(self) -> None:
+        """Run the game loop until the window is closed."""
         running = True
         bot_delay = 0
 
@@ -361,13 +467,13 @@ class Connect4Game:
 
             if not self.animating and not self.game_over and not self.is_manual_turn():
                 bot_delay += 1
-                if bot_delay >= BOT_DELAY_SECONDS * 60:
+                if bot_delay >= self.config.bot_delay_seconds * 60:
                     self.handle_bot_turn()
                     bot_delay = 0
             else:
                 bot_delay = 0
 
-            self.screen.fill(BACKGROUND_COLOR)
+            self.screen.fill(self.config.background_color)
             self.draw_board()
             self.draw_hover_indicator()
             self.draw_status()
@@ -378,24 +484,13 @@ class Connect4Game:
         pygame.quit()
 
 
-def play_game(
-    bot1: Optional[Type[AbstractBot]] = None,
-    bot2: Optional[Type[AbstractBot]] = None,
-) -> None:
-    game = Connect4Game(bot1, bot2)
-    game.run()
-
-
 if __name__ == "__main__":
     # Example usage:
-    # To play with two manual players:
-    play_game()
+    # Two manual players with default config
+    game = Connect4Game()
+    game.run()
 
-    # To play with one bot vs manual:
-    # from your_bot_module import YourBot
-    # play_game(bot1=YourBot)
-
-    # To play two bots against each other:
-    # from bot1_module import Bot1
-    # from bot2_module import Bot2
-    # play_game(bot1=Bot1, bot2=Bot2)
+    # To play with custom settings:
+    # config = GameConfig(bot_delay_seconds=0.5, animation_speed=35)
+    # game = Connect4Game(player1=RandomBot, player2=RandomBot, config=config)
+    # game.run()

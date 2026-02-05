@@ -55,6 +55,8 @@ class AbstractBot(ABC):
 
 
 class RandomBot(AbstractBot):
+    """A simple bot that plays random valid moves."""
+
     def __init__(self, player: CellState) -> None:
         super().__init__(player)
 
