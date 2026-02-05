@@ -5,11 +5,9 @@ import importlib.util
 import inspect
 from pathlib import Path
 from typing import Type, List, Any, Optional
-from collections import defaultdict
 from datetime import datetime
 import time
 
-import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -24,12 +22,13 @@ import pingv4
 
 SUBMISSION_PATH = os.path.join("submissions")
 BOT_CLASS = pingv4.AbstractBot
-IGNORE = ['__init__.py']
+IGNORE = ["__init__.py"]
 
 console = Console()
 
 
 # ==================== Pydantic MODELS ====================
+
 
 class GameResult(BaseModel):
     game_number: int
@@ -60,6 +59,7 @@ class TournamentResult(BaseModel):
 
 # ==================== HELPERS ====================
 
+
 def bot_label(bot_cls):
     """
     Match pingv4's printing exactly:
@@ -73,6 +73,7 @@ def bot_label(bot_cls):
 
 
 # ==================== LOADER ====================
+
 
 def load_and_instantiate(
     directory: str = SUBMISSION_PATH,
@@ -109,6 +110,7 @@ def load_and_instantiate(
 
 
 # ==================== DISPLAY ====================
+
 
 def display_matchup(player_1, player_2, round_num):
     table = Table(show_header=False, box=box.DOUBLE_EDGE, border_style="bright_blue")
@@ -154,6 +156,7 @@ def display_match_winner(winner, score):
 
 # ==================== TOURNAMENT ====================
 
+
 def pair(population: list[type[pingv4.AbstractBot]]):
     round_num = 1
     tournament_rounds: List[RoundState] = []
@@ -167,9 +170,11 @@ def pair(population: list[type[pingv4.AbstractBot]]):
     )
 
     while len(population) > 1:
-        console.print(f"\n[bold yellow]{'='*70}[/]")
-        console.print(f"[bold white]ROUND {round_num} - {len(population)} bots remaining[/]")
-        console.print(f"[bold yellow]{'='*70}[/]\n")
+        console.print(f"\n[bold yellow]{'=' * 70}[/]")
+        console.print(
+            f"[bold white]ROUND {round_num} - {len(population)} bots remaining[/]"
+        )
+        console.print(f"[bold yellow]{'=' * 70}[/]\n")
 
         round_population = [bot_label(b)[0] for b in population]
         round_matches: List[MatchResult] = []
@@ -237,8 +242,8 @@ def pair(population: list[type[pingv4.AbstractBot]]):
                     "  [cyan]2[/]  → Player 2 advances\n"
                     "  [cyan]0[/]  → Neither advances\n"
                     "  [cyan]-1[/] → Both advance\n"
-                        )
-            
+                )
+
                 while True:
                     try:
                         choice = int(console.input("[bold]Your choice → [/]").strip())
@@ -246,28 +251,28 @@ def pair(population: list[type[pingv4.AbstractBot]]):
                             break
                     except ValueError:
                         pass
-            
+
                     console.print("[red]Invalid input. Enter 1, 2, 0, or -1.[/]")
-            
+
                 match choice:
                     case 1:
                         match_winner = p1_name
                         display_match_winner(player_1, f"{wins_1}-{wins_2}")
                         population.remove(player_2)
-            
+
                     case 2:
                         match_winner = p2_name
                         display_match_winner(player_2, f"{wins_2}-{wins_1}")
                         population.remove(player_1)
-            
+
                     case 0:
                         console.print("[red]Both players eliminated.[/]")
                         population.remove(player_1)
                         population.remove(player_2)
-            
+
                     case -1:
                         console.print("[green]Both players advance.[/]")
-            
+
                     case _:
                         console.print("[green]Both players advance.[/]")
 
@@ -318,35 +323,7 @@ def pair(population: list[type[pingv4.AbstractBot]]):
     with open("results/tournament_results.json", "w") as f:
         f.write(tournament_result.model_dump_json(indent=2))
 
-    generate_tournament_chart(tournament_rounds, champion)
     return champion
-
-
-# ==================== STATS ====================
-
-def generate_tournament_chart(rounds: List[RoundState], champion):
-    win_counts = defaultdict(int)
-
-    for rnd in rounds:
-        for match in rnd.matches:
-            if match.winner:
-                win_counts[match.winner] += 1
-
-    if not win_counts:
-        return
-
-    champ_name, _ = bot_label(champion)
-    bots, wins = zip(*sorted(win_counts.items(), key=lambda x: x[1], reverse=True))
-
-    colors = ["gold" if b == champ_name else "steelblue" for b in bots]
-
-    plt.figure(figsize=(10, 6))
-    plt.barh(bots, wins, color=colors)
-    plt.xlabel("Wins")
-    plt.title("🏆 Tournament Results")
-    plt.tight_layout()
-    plt.savefig("tournament_results.png", dpi=300)
-    plt.show()
 
 
 # ==================== MAIN ====================

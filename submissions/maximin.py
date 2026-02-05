@@ -10,7 +10,7 @@ LOWERBOUND = 1
 UPPERBOUND = 2
 
 
-class MinimaxBot_SEX(AbstractBot):
+class MinimaxBot_ABC(AbstractBot):
     """
     A competent Connect Four bot using Minimax with Alpha-Beta pruning.
 
@@ -46,15 +46,15 @@ class MinimaxBot_SEX(AbstractBot):
 
     @property
     def strategy_name(self) -> str:
-        return f"MinimaxBot SEX (depth={self.max_depth})"
+        return f"MinimaxBot ABC (depth={self.max_depth})"
 
     @property
     def author_name(self) -> str:
-        return "Pingv4 COCK 67"
+        return "Pingv4 COCK"
 
     @property
     def author_netid(self) -> str:
-        return "pingv4 COCK 67"
+        return "pingv4 COCK"
 
     def get_move(self, board: ConnectFourBoard) -> int:
         """Select the best move using iterative deepening minimax."""
