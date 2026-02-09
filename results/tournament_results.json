@@ -1,0 +1,61 @@
+{
+  "started_at": "2026-02-09T19:38:29.611553",
+  "champion": null,
+  "rounds": [
+    {
+      "round_number": 1,
+      "population": [
+        "la390.py",
+        "ps950.py",
+        "at612.py",
+        "aa557.py",
+        "sr255.py",
+        "aa371.py",
+        "ra830.py",
+        "ae990.py",
+        "pa896.py",
+        "as770.py",
+        "ys617.py",
+        "aa740.py",
+        "dp449.py",
+        "ss691.py",
+        "ac653.py",
+        "as617.py",
+        "mp282.py",
+        "as637.py",
+        "mk463.py",
+        "hb969.py",
+        "vm119.py",
+        "va703.py",
+        "as658.py",
+        "sj993.py",
+        "RandomBot"
+      ],
+      "matches": [
+        {
+          "match_number": 1,
+          "player_1": "The fool (as658)",
+          "player_2": "AlphaBeta-ThreatEval (as264)",
+          "wins_1": 2,
+          "wins_2": 0,
+          "games": [
+            {
+              "game_number": 1,
+              "winner": "The fool"
+            },
+            {
+              "game_number": 2,
+              "winner": "The fool"
+            }
+          ],
+          "winner": "The fool (as658)"
+        }
+      ]
+    },
+    {
+      "round_number": 2,
+      "population": [],
+      "matches": []
+    }
+  ]
+}

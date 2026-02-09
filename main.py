@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Type, List, Any, Optional
 from datetime import datetime
 import time
+import json
 
 from rich.console import Console
 from rich.table import Table
@@ -20,16 +21,17 @@ import pingv4
 
 # ==================== CONFIG ====================
 
-SUBMISSION_PATH = os.path.join("submissions")
+SUBMISSION_PATH = "submissions"
+POPULATION_FILE = "population.txt"
+RESULTS_FILE = "results/tournament_results.json"
+
 BOT_CLASS = pingv4.AbstractBot
 IGNORE = ["__init__.py"]
-POPULATION_FILE = "population.txt"
 
 console = Console()
 
 
 # ==================== Pydantic MODELS ====================
-
 
 class GameResult(BaseModel):
     game_number: int
@@ -54,95 +56,105 @@ class RoundState(BaseModel):
 
 class TournamentResult(BaseModel):
     started_at: datetime
-    champion: str
+    champion: Optional[str]
     rounds: List[RoundState]
 
 
 # ==================== HELPERS ====================
 
-
 def bot_label(bot_cls):
     try:
         bot = bot_cls(player=pingv4.CellState.Red)
-        strategy = getattr(bot, "strategy_name", bot_cls.__name__)
-        author = getattr(bot, "author_name", "Unknown")
-        netid = getattr(bot, "author_netid", "unknown")
-        return strategy, author, netid
+        return (
+            getattr(bot, "strategy_name", bot_cls.__name__),
+            getattr(bot, "author_name", "Unknown"),
+            getattr(bot, "author_netid", bot_cls.__name__),
+        )
     except Exception:
-        return bot_cls.__name__, "Unknown", "unknown"
+        return bot_cls.__name__, "Unknown", bot_cls.__name__
 
 
 def read_population_file(path: str) -> List[str]:
     if not os.path.exists(path):
         return []
-
-    with open(path, "r") as f:
-        lines = [line.strip() for line in f.readlines()]
-
-    # format: filename | netid
-    return [line.split("|")[0].strip() for line in lines if line]
+    with open(path) as f:
+        return [l.strip() for l in f if l.strip()]
 
 
-def append_population_file(path: str, filename: str, netid: str):
-    with open(path, "a") as f:
-        f.write(f"{filename} | {netid}\n")
+def write_population_file(population: dict[type[Any], str]):
+    with open(POPULATION_FILE, "w") as f:
+        for filename in population.values():
+            f.write(f"{filename}\n")
+
+
+def load_or_create_tournament() -> TournamentResult:
+    if not os.path.exists(RESULTS_FILE) or os.path.getsize(RESULTS_FILE) == 0:
+        return TournamentResult(
+            started_at=datetime.utcnow(),
+            champion=None,
+            rounds=[],
+        )
+
+    with open(RESULTS_FILE) as f:
+        return TournamentResult.model_validate(json.load(f))
+
+
+def dump_tournament(tournament: TournamentResult):
+    os.makedirs("results", exist_ok=True)
+    with open(RESULTS_FILE, "w") as f:
+        f.write(tournament.model_dump_json(indent=2))
 
 
 # ==================== LOADER ====================
-
 
 def load_and_instantiate(
     directory: str = SUBMISSION_PATH,
     base_class: Type = BOT_CLASS,
     exclude_files: List[str] = IGNORE,
-    population_file: str = POPULATION_FILE,
 ) -> dict[type[Any], str]:
-    directory_path = Path(directory)
-    requested_files = read_population_file(population_file)
 
-    if requested_files:
-        py_files = [directory_path / f for f in requested_files]
-    else:
-        py_files = list(directory_path.glob("*.py"))
+    directory_path = Path(directory)
+    requested_files = read_population_file(POPULATION_FILE)
+
+    py_files = (
+        [directory_path / f for f in requested_files]
+        if requested_files
+        else list(directory_path.glob("*.py"))
+    )
 
     population: dict[type[Any], str] = {}
 
     with console.status("[bold cyan]Loading bot submissions...", spinner="dots"):
         for py_file in py_files:
-            if not py_file.exists():
-                console.print(f"[red]Missing file:[/] {py_file.name}")
+            if not py_file.exists() or py_file.name in exclude_files:
                 continue
 
-            if py_file.name in exclude_files:
+            spec = importlib.util.spec_from_file_location(py_file.stem, py_file)
+            if not spec or not spec.loader:
                 continue
 
-            module_name = py_file.stem
-            spec = importlib.util.spec_from_file_location(module_name, py_file)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[py_file.stem] = module
+            spec.loader.exec_module(module)
 
-            if spec and spec.loader:
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
-                spec.loader.exec_module(module)
+            for _, obj in inspect.getmembers(module, inspect.isclass):
+                if (
+                    issubclass(obj, base_class)
+                    and obj is not base_class
+                    and obj.__module__ == py_file.stem
+                ):
+                    population[obj] = py_file.name
+                    strat, author, netid = bot_label(obj)
+                    console.print(
+                        f"  ✓ Loaded [bold green]{strat}[/] "
+                        f"by [cyan]{author}[/] ([magenta]{netid}[/])"
+                    )
 
-                for _, obj in inspect.getmembers(module, inspect.isclass):
-                    if (
-                        issubclass(obj, base_class)
-                        and obj is not base_class
-                        and obj.__module__ == module_name
-                    ):
-                        population[obj] = py_file.name
-                        strat, author, netid = bot_label(obj)
-                        console.print(
-                            f"  ✓ Loaded [bold green]{strat}[/] "
-                            f"by [cyan]{author}[/] ([magenta]{netid}[/])"
-                        )
-
-    console.print(f"\n[bold]Total bots loaded:[/] [green]{len(population)}[/]\n")
+    write_population_file(population)
     return population
 
 
 # ==================== DISPLAY ====================
-
 
 def display_matchup(player_1, player_2, round_num):
     table = Table(show_header=False, box=box.DOUBLE_EDGE, border_style="bright_blue")
@@ -168,13 +180,10 @@ def display_matchup(player_1, player_2, round_num):
     )
 
 
-def display_game_result(game_num, winner_class):
-    if winner_class:
-        strat, _, netid = bot_label(winner_class)
-        console.print(
-            f"  Game {game_num}: [bold green]{strat}[/] "
-            f"([magenta]{netid}[/]) wins!"
-        )
+def display_game_result(game_num, winner):
+    if winner:
+        strat, _, netid = bot_label(winner)
+        console.print(f"  Game {game_num}: [bold green]{strat}[/] ([magenta]{netid}[/])")
     else:
         console.print(f"  Game {game_num}: [bold yellow]Draw[/]")
 
@@ -183,8 +192,7 @@ def display_match_winner(winner, score):
     strat, _, netid = bot_label(winner)
     console.print(
         Panel(
-            f"[bold green]{strat}[/] ([magenta]{netid}[/]) "
-            f"wins the match! ({score})",
+            f"[bold green]{strat}[/] ([magenta]{netid}[/]) wins the match! ({score})",
             border_style="green",
         )
     )
@@ -192,10 +200,10 @@ def display_match_winner(winner, score):
 
 # ==================== TOURNAMENT ====================
 
-
 def pair(population: dict[type[pingv4.AbstractBot], str]):
-    round_num = 1
-    tournament_rounds: List[RoundState] = []
+
+    tournament = load_or_create_tournament()
+    round_num = len(tournament.rounds) + 1
 
     console.print(
         Panel.fit(
@@ -206,171 +214,105 @@ def pair(population: dict[type[pingv4.AbstractBot], str]):
     )
 
     while len(population) > 1:
-        console.print(f"\n[bold yellow]{'=' * 70}[/]")
-        console.print(
-            f"[bold white]ROUND {round_num} - {len(population)} bots remaining[/]"
+        round_state = RoundState(
+            round_number=round_num,
+            population=[],
+            matches=[],
         )
-        console.print(f"[bold yellow]{'=' * 70}[/]\n")
 
-        round_population = list(population.values())
-        round_matches: List[MatchResult] = []
+        tournament.rounds.append(round_state)
+        dump_tournament(tournament)  # ← round exists on disk immediately
 
         bot_classes = list(population.keys())
 
         if len(bot_classes) % 2 == 1:
             console.print("[yellow]Odd number of bots - adding RandomBot[/]\n")
-            population[pingv4.RandomBot] = "__builtin__"
+            population[pingv4.RandomBot] = "RandomBot"
             bot_classes.append(pingv4.RandomBot)
 
         random.shuffle(bot_classes)
         pairs = list(zip(bot_classes[::2], bot_classes[1::2]))
 
-        for match_num, (player_1, player_2) in enumerate(pairs, 1):
+        for match_num, (p1, p2) in enumerate(pairs, 1):
             console.print(f"\n[bold]Match {match_num}/{len(pairs)}[/]")
-            display_matchup(player_1, player_2, round_num)
+            display_matchup(p1, p2, round_num)
 
             wins_1 = wins_2 = games_played = 0
-            games_log: List[GameResult] = []
+            games: List[GameResult] = []
 
             while games_played < 3 and wins_1 < 2 and wins_2 < 2:
-                console.print(f"\n[dim]Playing game {games_played + 1}...[/]")
-
-                game = pingv4.Connect4Game(player1=player_1, player2=player_2)
+                game = pingv4.Connect4Game(player1=p1, player2=p2)
                 game.run()
 
-                winner_name = None
-
+                winner = None
                 match game.winner:
                     case 1:
                         wins_1 += 1
-                        winner_name = bot_label(player_1)[0]
-                        display_game_result(games_played + 1, player_1)
+                        winner = p1
                     case 2:
                         wins_2 += 1
-                        winner_name = bot_label(player_2)[0]
-                        display_game_result(games_played + 1, player_2)
-                    case _:
-                        display_game_result(games_played + 1, None)
+                        winner = p2
 
-                games_log.append(
+                display_game_result(games_played + 1, winner)
+                games.append(
                     GameResult(
                         game_number=games_played + 1,
-                        winner=winner_name,
+                        winner=bot_label(winner)[0] if winner else None,
                     )
                 )
-
                 games_played += 1
 
-            p1_strat, _, p1_netid = bot_label(player_1)
-            p2_strat, _, p2_netid = bot_label(player_2)
+            p1_strat, _, p1_id = bot_label(p1)
+            p2_strat, _, p2_id = bot_label(p2)
 
             match_winner = None
+
             if wins_1 > wins_2:
-                match_winner = f"{p1_strat} ({p1_netid})"
-                display_match_winner(player_1, f"{wins_1}-{wins_2}")
-                append_population_file(
-                    POPULATION_FILE, population[player_1], p1_netid
-                )
-                population.pop(player_2, None)
+                match_winner = f"{p1_strat} ({p1_id})"
+                display_match_winner(p1, f"{wins_1}-{wins_2}")
+                population.pop(p2, None)
 
             elif wins_2 > wins_1:
-                match_winner = f"{p2_strat} ({p2_netid})"
-                display_match_winner(player_2, f"{wins_2}-{wins_1}")
-                append_population_file(
-                    POPULATION_FILE, population[player_2], p2_netid
-                )
-                population.pop(player_1, None)
+                match_winner = f"{p2_strat} ({p2_id})"
+                display_match_winner(p2, f"{wins_2}-{wins_1}")
+                population.pop(p1, None)
 
             else:
-                console.print(
-                    "[yellow]Tie match![/]\n"
-                    "[dim]Choose outcome:[/]\n"
-                    "  [cyan]1[/]  → Player 1 advances\n"
-                    "  [cyan]2[/]  → Player 2 advances\n"
-                    "  [cyan]0[/]  → Neither advances\n"
-                    "  [cyan]-1[/] → Both advance\n"
-                )
+                population.pop(p1, None)
+                population.pop(p2, None)
 
-                while True:
-                    try:
-                        choice = int(console.input("[bold]Your choice → [/]").strip())
-                        if choice in {1, 2, 0, -1}:
-                            break
-                    except ValueError:
-                        pass
-
-                    console.print("[red]Invalid input.[/]")
-
-                match choice:
-                    case 1:
-                        match_winner = f"{p1_strat} ({p1_netid})"
-                        append_population_file(
-                            POPULATION_FILE, population[player_1], p1_netid
-                        )
-                        population.pop(player_2, None)
-                    case 2:
-                        match_winner = f"{p2_strat} ({p2_netid})"
-                        append_population_file(
-                            POPULATION_FILE, population[player_2], p2_netid
-                        )
-                        population.pop(player_1, None)
-                    case 0:
-                        population.pop(player_1, None)
-                        population.pop(player_2, None)
-                    case -1:
-                        append_population_file(
-                            POPULATION_FILE, population[player_1], p1_netid
-                        )
-                        append_population_file(
-                            POPULATION_FILE, population[player_2], p2_netid
-                        )
-
-            round_matches.append(
+            round_state.matches.append(
                 MatchResult(
                     match_number=match_num,
-                    player_1=f"{p1_strat} ({p1_netid})",
-                    player_2=f"{p2_strat} ({p2_netid})",
+                    player_1=f"{p1_strat} ({p1_id})",
+                    player_2=f"{p2_strat} ({p2_id})",
                     wins_1=wins_1,
                     wins_2=wins_2,
-                    games=games_log,
+                    games=games,
                     winner=match_winner,
                 )
             )
 
-            time.sleep(0.4)
+            round_state.population = list(population.values())
+            write_population_file(population)
+            dump_tournament(tournament)  # ← after each match
 
-        tournament_rounds.append(
-            RoundState(
-                round_number=round_num,
-                population=round_population,
-                matches=round_matches,
-            )
-        )
+            time.sleep(0.4)
 
         round_num += 1
 
     champion = next(iter(population))
-    champ_strat, champ_author, champ_netid = bot_label(champion)
+    strat, _, netid = bot_label(champion)
+    tournament.champion = f"{strat} ({netid})"
+    dump_tournament(tournament)
 
     console.print(
         Panel.fit(
             f"[bold gold1]👑 CHAMPION 👑[/]\n\n"
-            f"[bold cyan]{champ_strat}[/]\n"
-            f"[white]{champ_author}[/] ([magenta]{champ_netid}[/])",
+            f"[bold cyan]{strat}[/]",
             border_style="gold1",
         )
     )
-
-    os.makedirs("results", exist_ok=True)
-
-    tournament_result = TournamentResult(
-        started_at=datetime.utcnow(),
-        champion=f"{champ_strat} ({champ_netid})",
-        rounds=tournament_rounds,
-    )
-
-    with open("results/tournament_results.json", "w") as f:
-        f.write(tournament_result.model_dump_json(indent=2))
 
     return champion
 
@@ -382,7 +324,6 @@ if __name__ == "__main__":
 
     try:
         population = load_and_instantiate()
-
         if len(population) < 2:
             console.print("[red]Need at least 2 bots[/]")
             sys.exit(1)
