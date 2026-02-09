@@ -365,8 +365,10 @@ class Connect4Game:
         text_rect = text_surface.get_rect(center=(cfg.window_width // 2, 40))
         self.screen.blit(text_surface, text_rect)
 
-        red_info = f"Red: {self.red_player.strategy_name}"
-        yellow_info = f"Yellow: {self.yellow_player.strategy_name}"
+        red_info = (
+            f"Red: {self.red_player.author_netid} - {self.red_player.strategy_name}"
+        )
+        yellow_info = f"Yellow: {self.yellow_player.author_netid} - {self.yellow_player.strategy_name}"
 
         red_surface = self.small_font.render(red_info, True, cfg.red_color)
         yellow_surface = self.small_font.render(yellow_info, True, cfg.yellow_color)

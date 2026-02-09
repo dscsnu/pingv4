@@ -1,6 +1,6 @@
 [project]
 name = "pingv4"
-version = "0.1.2"
+version = "0.1.3"
 description = "A high-performance Connect Four library with a graphical game interface and bot framework."
 license = { text = "MIT" }
 readme = "README.md"
