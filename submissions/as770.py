@@ -3,7 +3,7 @@ import math
 
 
 class as770(AbstractBot):
-    def __init__(self, player):
+    def __init__(self, player: CellState):
         super().__init__(player)
         # Opening book: known strong opening moves
         self.opening_book = {

@@ -3,7 +3,7 @@ from pingv4._core import CellState
 
 
 class sr255(AbstractBot):
-    def __init__(self, player=None):
+    def __init__(self, player: CellState):
         super().__init__(player)
 
     @property

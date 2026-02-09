@@ -22,8 +22,8 @@ class as637(AbstractBot):
     CHANGE THE CLASS NAME TO your snu net id.
     """
 
-    def __init__(self, color):
-        super().__init__(color)
+    def __init__(self, player: CellState):
+        super().__init__(player)
         self.transposition_table = {}
         self.killer_moves = [[None, None] for _ in range(20)]
         self.MAX_DEPTH = 8

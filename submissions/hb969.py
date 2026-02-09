@@ -19,8 +19,8 @@ class hb969(AbstractBot):
     def author_netid(self) -> str:
         return "hb969"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, player: CellState):
+        super().__init__(player)
         self.tt = {}
 
     # ======================

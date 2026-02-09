@@ -12,8 +12,8 @@ class la390(AbstractBot):
     Simplified bot that focuses on what works
     """
 
-    def __init__(self, color=None):
-        super().__init__(color)
+    def __init__(self, player: CellState):
+        super().__init__(player)
         self.transposition_table: Dict[int, Tuple[int, float, int]] = {}
         self.MAX_DEPTH = 6  # Sweet spot: deeper than la390 but not too slow
 

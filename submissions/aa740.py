@@ -19,8 +19,8 @@ class aa740(AbstractBot):
     def author_netid(self) -> str:
         return "aa740"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, player: CellState):
+        super().__init__(player)
         self.tt = {}
 
     # ======================

@@ -13,11 +13,11 @@ class ss691(AbstractBot):
     COLUMN_COUNT = 7
     WINDOW_LENGTH = 4
 
-    def __init__(self, color: CellState):
-        super().__init__(color)
+    def __init__(self, player: CellState):
+        super().__init__(player)
 
-        self.my_color = color
-        self.opp_color = CellState.Yellow if color == CellState.Red else CellState.Red
+        self.my_color = player
+        self.opp_color = CellState.Yellow if player == CellState.Red else CellState.Red
 
         # Internal representation (same as pygame bot)
         # 0 = empty
@@ -78,7 +78,9 @@ class ss691(AbstractBot):
         grid[row][col] = piece
 
     def get_valid_locations(self, grid):
-        return [col for col in range(self.COLUMN_COUNT) if self.is_valid_location(grid, col)]
+        return [
+            col for col in range(self.COLUMN_COUNT) if self.is_valid_location(grid, col)
+        ]
 
     # ----------------------------
     # Win check (same as pygame bot)

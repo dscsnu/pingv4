@@ -12,8 +12,8 @@ from typing import Dict, Tuple
 class ps950(AbstractBot):
     """UltimateBot-Slayer - Enhanced minimax with superior scoring"""
 
-    def __init__(self, color=None):
-        super().__init__(color)
+    def __init__(self, player: CellState):
+        super().__init__(player)
         self.transposition_table: Dict[int, Tuple[int, float, int]] = {}
         self.MAX_DEPTH = 7  # Depth 7 beats depth 6 bots
 

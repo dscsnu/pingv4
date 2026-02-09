@@ -1,8 +1,8 @@
-from pingv4 import AbstractBot, ConnectFourBoard
+from pingv4 import AbstractBot, ConnectFourBoard, CellState
 
 
 class ra830(AbstractBot):
-    def __init__(self, player):
+    def __init__(self, player: CellState):
         super().__init__(player)
         self.prev_board = None
 
