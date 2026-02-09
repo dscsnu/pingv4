@@ -11,7 +11,7 @@ from pingv4 import AbstractBot, ConnectFourBoard, CellState
 import time
 
 
-class Ae990(AbstractBot):
+class ae990(AbstractBot):
     @property
     def strategy_name(self) -> str:
         return "Fast Fork v17 (<10s)"
@@ -120,7 +120,9 @@ class Ae990(AbstractBot):
                 break
 
             self.make_move(col, 1)
-            score = self.minimax(depth - 1, alpha, beta, False, 2, start_time, time_limit)
+            score = self.minimax(
+                depth - 1, alpha, beta, False, 2, start_time, time_limit
+            )
             self.undo_move(col)
 
             if score > best_score:
@@ -144,7 +146,9 @@ class Ae990(AbstractBot):
             max_eval = -999999
             for col in self.order_moves(valid, 1):
                 self.make_move(col, 1)
-                eval = self.minimax(depth - 1, alpha, beta, False, player, start_time, time_limit)
+                eval = self.minimax(
+                    depth - 1, alpha, beta, False, player, start_time, time_limit
+                )
                 self.undo_move(col)
                 max_eval = max(max_eval, eval)
                 alpha = max(alpha, eval)
@@ -155,7 +159,9 @@ class Ae990(AbstractBot):
             min_eval = 999999
             for col in self.order_moves(valid, player):
                 self.make_move(col, player)
-                eval = self.minimax(depth - 1, alpha, beta, True, 3 - player, start_time, time_limit)
+                eval = self.minimax(
+                    depth - 1, alpha, beta, True, 3 - player, start_time, time_limit
+                )
                 self.undo_move(col)
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
@@ -186,7 +192,7 @@ class Ae990(AbstractBot):
             score -= 15000
 
         # Simple mobility bonus
-        score += (len([c for c in range(7) if self.heights[c] < 6]) * 4)
+        score += len([c for c in range(7) if self.heights[c] < 6]) * 4
 
         return score
 

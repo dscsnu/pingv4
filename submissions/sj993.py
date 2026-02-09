@@ -1,21 +1,22 @@
 from pingv4 import AbstractBot, ConnectFourBoard, CellState
 
-class MyBot(AbstractBot):
+
+class sj993(AbstractBot):
     @property
     def strategy_name(self) -> str:
         return "GrumBot"
-    
+
     @property
     def author_name(self) -> str:
         return "Sarthak Jain"
-    
+
     @property
     def author_netid(self) -> str:
         return "sj993"
-    
+
     def get_move(self, board: ConnectFourBoard) -> int:
         valid_moves = board.get_valid_moves()
-        center = board.num_cols // 2  
+        center = board.num_cols // 2
 
         move = win(board, valid_moves)
         if move != -1:
@@ -26,16 +27,18 @@ class MyBot(AbstractBot):
             return move
 
         safe_moves = [
-            c for c in valid_moves
+            c
+            for c in valid_moves
             if not move_provides_opponent_support(board, c)
             and not is_winning_cell(
                 board,
                 c,
                 board.column_heights[c],
-                CellState.Red if board.current_player == CellState.Yellow else CellState.Yellow
+                CellState.Red
+                if board.current_player == CellState.Yellow
+                else CellState.Yellow,
             )
         ]
-
 
         if not safe_moves:
             return valid_moves[0]
@@ -46,13 +49,12 @@ class MyBot(AbstractBot):
         return pick_best_safe_move(board, safe_moves)
 
 
-
 def pick_best_safe_move(board, safe_moves):
     player = board.current_player
     center = board.num_cols // 2
 
     best = safe_moves[0]
-    best_score = -10**9
+    best_score = -(10**9)
 
     for c in safe_moves:
         row = board.column_heights[c]
@@ -81,12 +83,9 @@ def win(board, valid_moves):
     return -1
 
 
-
 def prevent(board, valid_moves):
     opponent = (
-        CellState.Red
-        if board.current_player == CellState.Yellow
-        else CellState.Yellow
+        CellState.Red if board.current_player == CellState.Yellow else CellState.Yellow
     )
 
     for c in valid_moves:
@@ -97,9 +96,9 @@ def prevent(board, valid_moves):
     return -1
 
 
-
 def is_supported(board, col, row):
     return row == 0 or board[col, row - 1] is not None
+
 
 def count_in_direction(board, col, row, dcol, drow, player):
     count = 0
@@ -110,13 +109,12 @@ def count_in_direction(board, col, row, dcol, drow, player):
         if board[c, r] == player:
             count += 1
         elif board[c, r] is not None:
-            break  
+            break
         c += dcol
         r += drow
         steps += 1
 
     return count
-
 
 
 def is_winning_cell(board, col, row, player):
@@ -137,9 +135,7 @@ def is_winning_cell(board, col, row, player):
 
 def move_provides_opponent_support(board, column):
     opponent = (
-        CellState.Red
-        if board.current_player == CellState.Yellow
-        else CellState.Yellow
+        CellState.Red if board.current_player == CellState.Yellow else CellState.Yellow
     )
 
     landing_row = board.column_heights[column]

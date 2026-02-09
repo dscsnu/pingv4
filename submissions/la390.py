@@ -7,7 +7,7 @@ from pingv4 import AbstractBot, ConnectFourBoard, CellState
 from typing import Dict, Tuple
 
 
-class LA390(AbstractBot):
+class la390(AbstractBot):
     """
     Simplified bot that focuses on what works
     """
@@ -27,7 +27,7 @@ class LA390(AbstractBot):
 
     @property
     def author_netid(self) -> str:
-        return "LA390"
+        return "la390"
 
     def get_move(self, board: ConnectFourBoard) -> int:
         """Find best move with la390-style approach"""
@@ -51,10 +51,14 @@ class LA390(AbstractBot):
                 return col
 
         # 3. Use minimax
-        best_col, _ = self.minimax(board, self.MAX_DEPTH, -float('inf'), float('inf'), True, me)
+        best_col, _ = self.minimax(
+            board, self.MAX_DEPTH, -float("inf"), float("inf"), True, me
+        )
         return best_col
 
-    def _opponent_wins_here(self, board: ConnectFourBoard, col: int, opponent: CellState) -> bool:
+    def _opponent_wins_here(
+        self, board: ConnectFourBoard, col: int, opponent: CellState
+    ) -> bool:
         """Check if opponent would win by playing at col"""
         # We need to check if opponent playing at col creates 4-in-a-row
         # Get row where piece would land
@@ -70,7 +74,7 @@ class LA390(AbstractBot):
 
         # Horizontal
         count = 0
-        for c in range(max(0, col-3), min(7, col+4)):
+        for c in range(max(0, col - 3), min(7, col + 4)):
             if c == col:
                 count += 1
             elif board[c, row] == opponent:
@@ -82,7 +86,7 @@ class LA390(AbstractBot):
 
         # Vertical (only check down)
         count = 1
-        for r in range(row-1, -1, -1):
+        for r in range(row - 1, -1, -1):
             if board[col, r] == opponent:
                 count += 1
             else:
@@ -93,13 +97,13 @@ class LA390(AbstractBot):
         # Diagonal /
         count = 1
         # Down-left
-        c, r = col-1, row-1
+        c, r = col - 1, row - 1
         while c >= 0 and r >= 0 and board[c, r] == opponent:
             count += 1
             c -= 1
             r -= 1
         # Up-right
-        c, r = col+1, row+1
+        c, r = col + 1, row + 1
         while c < 7 and r < 6 and board[c, r] == opponent:
             count += 1
             c += 1
@@ -110,13 +114,13 @@ class LA390(AbstractBot):
         # Diagonal \
         count = 1
         # Up-left
-        c, r = col-1, row+1
+        c, r = col - 1, row + 1
         while c >= 0 and r < 6 and board[c, r] == opponent:
             count += 1
             c -= 1
             r += 1
         # Down-right
-        c, r = col+1, row-1
+        c, r = col + 1, row - 1
         while c < 7 and r >= 0 and board[c, r] == opponent:
             count += 1
             c += 1
@@ -126,8 +130,15 @@ class LA390(AbstractBot):
 
         return False
 
-    def minimax(self, board: ConnectFourBoard, depth: int, alpha: float,
-                beta: float, is_maximizing: bool, my_color: CellState) -> Tuple[int, float]:
+    def minimax(
+        self,
+        board: ConnectFourBoard,
+        depth: int,
+        alpha: float,
+        beta: float,
+        is_maximizing: bool,
+        my_color: CellState,
+    ) -> Tuple[int, float]:
         """Minimax with alpha-beta pruning - la390 style"""
 
         # Check transposition table
@@ -157,10 +168,12 @@ class LA390(AbstractBot):
         best_col = ordered_moves[0]
 
         if is_maximizing:
-            max_eval = -float('inf')
+            max_eval = -float("inf")
             for col in ordered_moves:
                 new_board = board.make_move(col)
-                _, eval_score = self.minimax(new_board, depth - 1, alpha, beta, False, my_color)
+                _, eval_score = self.minimax(
+                    new_board, depth - 1, alpha, beta, False, my_color
+                )
 
                 if eval_score > max_eval:
                     max_eval = eval_score
@@ -172,10 +185,12 @@ class LA390(AbstractBot):
             self.transposition_table[state_id] = (depth, max_eval, best_col)
             return best_col, max_eval
         else:
-            min_eval = float('inf')
+            min_eval = float("inf")
             for col in ordered_moves:
                 new_board = board.make_move(col)
-                _, eval_score = self.minimax(new_board, depth - 1, alpha, beta, True, my_color)
+                _, eval_score = self.minimax(
+                    new_board, depth - 1, alpha, beta, True, my_color
+                )
 
                 if eval_score < min_eval:
                     min_eval = eval_score
@@ -200,25 +215,25 @@ class LA390(AbstractBot):
         # Horizontal
         for r in range(6):
             for c in range(4):
-                window = [board[c+i, r] for i in range(4)]
+                window = [board[c + i, r] for i in range(4)]
                 score += self.evaluate_window(window, piece)
 
         # Vertical
         for c in range(7):
             for r in range(3):
-                window = [board[c, r+i] for i in range(4)]
+                window = [board[c, r + i] for i in range(4)]
                 score += self.evaluate_window(window, piece)
 
         # Diagonal /
         for r in range(3):
             for c in range(4):
-                window = [board[c+i, r+i] for i in range(4)]
+                window = [board[c + i, r + i] for i in range(4)]
                 score += self.evaluate_window(window, piece)
 
         # Diagonal \
         for r in range(3, 6):
             for c in range(4):
-                window = [board[c+i, r-i] for i in range(4)]
+                window = [board[c + i, r - i] for i in range(4)]
                 score += self.evaluate_window(window, piece)
 
         return score

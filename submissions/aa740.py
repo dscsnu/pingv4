@@ -6,8 +6,7 @@ INF = 10**9
 MOVE_ORDER = [3, 2, 4, 1, 5, 0, 6]
 
 
-class MyBot(AbstractBot):
-
+class aa740(AbstractBot):
     @property
     def strategy_name(self) -> str:
         return "Apex"
@@ -18,7 +17,7 @@ class MyBot(AbstractBot):
 
     @property
     def author_netid(self) -> str:
-        return "apex_fast"
+        return "aa740"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,13 +59,7 @@ class MyBot(AbstractBot):
             if c not in valid:
                 continue
             score = self._alphabeta(
-                board.make_move(c),
-                depth - 1,
-                -INF,
-                INF,
-                False,
-                ME,
-                OPP
+                board.make_move(c), depth - 1, -INF, INF, False, ME, OPP
             )
             score += self._parity(board.make_move(c))
 
@@ -95,10 +88,12 @@ class MyBot(AbstractBot):
             val = -INF
             for c in MOVE_ORDER:
                 if c in valid:
-                    val = max(val, self._alphabeta(
-                        board.make_move(c),
-                        depth - 1, alpha, beta, False, ME, OPP
-                    ))
+                    val = max(
+                        val,
+                        self._alphabeta(
+                            board.make_move(c), depth - 1, alpha, beta, False, ME, OPP
+                        ),
+                    )
                     alpha = max(alpha, val)
                     if alpha >= beta:
                         break
@@ -106,10 +101,12 @@ class MyBot(AbstractBot):
             val = INF
             for c in MOVE_ORDER:
                 if c in valid:
-                    val = min(val, self._alphabeta(
-                        board.make_move(c),
-                        depth - 1, alpha, beta, True, ME, OPP
-                    ))
+                    val = min(
+                        val,
+                        self._alphabeta(
+                            board.make_move(c), depth - 1, alpha, beta, True, ME, OPP
+                        ),
+                    )
                     beta = min(beta, val)
                     if alpha >= beta:
                         break
@@ -180,16 +177,16 @@ class MyBot(AbstractBot):
         W = []
         for r in range(ROWS):
             for c in range(COLS - 3):
-                W.append([board[c+i, r] for i in range(4)])
+                W.append([board[c + i, r] for i in range(4)])
         for c in range(COLS):
             for r in range(ROWS - 3):
-                W.append([board[c, r+i] for i in range(4)])
+                W.append([board[c, r + i] for i in range(4)])
         for c in range(COLS - 3):
             for r in range(ROWS - 3):
-                W.append([board[c+i, r+i] for i in range(4)])
+                W.append([board[c + i, r + i] for i in range(4)])
         for c in range(COLS - 3):
             for r in range(3, ROWS):
-                W.append([board[c+i, r-i] for i in range(4)])
+                W.append([board[c + i, r - i] for i in range(4)])
         return W
 
     # ======================

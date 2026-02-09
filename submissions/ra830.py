@@ -1,7 +1,7 @@
 from pingv4 import AbstractBot, ConnectFourBoard
 
-class Ra830(AbstractBot):
 
+class ra830(AbstractBot):
     def __init__(self, player):
         super().__init__(player)
         self.prev_board = None
@@ -16,7 +16,7 @@ class Ra830(AbstractBot):
 
     @property
     def author_netid(self) -> str:
-        return "Your NetID"
+        return "ra830"
 
     def get_move(self, board: ConnectFourBoard) -> int:
         valid_moves = board.get_valid_moves()
@@ -25,7 +25,9 @@ class Ra830(AbstractBot):
 
         if self.prev_board is not None:
             for col in range(7):
-                if board.get_column_height(col) > self.prev_board.get_column_height(col):
+                if board.get_column_height(col) > self.prev_board.get_column_height(
+                    col
+                ):
                     user_col = col
                     break
 

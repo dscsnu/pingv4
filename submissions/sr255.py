@@ -2,7 +2,7 @@ from pingv4 import AbstractBot, ConnectFourBoard
 from pingv4._core import CellState
 
 
-class saikarthik_sr255(AbstractBot):
+class sr255(AbstractBot):
     def __init__(self, player=None):
         super().__init__(player)
 
@@ -100,4 +100,3 @@ class saikarthik_sr255(AbstractBot):
         if hasattr(color, "name"):
             return [c for c in type(color) if c != color][0]
         return 1 if color == 2 else 2
-
