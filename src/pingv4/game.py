@@ -135,6 +135,8 @@ class Connect4Game:
         self.animation_row_target: Optional[int] = None
         self.animation_y: float = 0
         self.animation_color: Optional[Tuple[int, int, int]] = None
+        self.error_player_1: bool = False
+        self.error_player_2: bool = False
 
         print("=" * 50)
         print("COIN FLIP RESULT")
@@ -400,9 +402,22 @@ class Connect4Game:
                         self.make_move(random.choice(valid_moves))
             except Exception as e:
                 print(f"Bot {current_player.strategy_name} error: {e}")
-                valid_moves = self.board.get_valid_moves()
-                if valid_moves:
-                    self.make_move(random.choice(valid_moves))
+                # Set error flag for the corresponding player, declare other player winner, and stop game
+                if current_player == self.red_player:
+                    if self.player1_is_red:
+                        self.error_player_1 = True
+                        self.winner = 2
+                    else:
+                        self.error_player_2 = True
+                        self.winner = 1
+                else:
+                    if self.player1_is_red:
+                        self.error_player_2 = True
+                        self.winner = 1
+                    else:
+                        self.error_player_1 = True
+                        self.winner = 2
+                self.game_over = True
 
     def reset_game(self) -> None:
         """Reset the game to initial state with new color assignment."""
@@ -426,6 +441,8 @@ class Connect4Game:
         self.animating = False
         self.animation_col = None
         self.animation_row_target = None
+        self.error_player_1 = False
+        self.error_player_2 = False
 
         print("\n" + "=" * 50)
         print("NEW GAME - COIN FLIP")
