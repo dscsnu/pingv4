@@ -93,15 +93,15 @@ wheels = [
 
 [[package]]
 name = "pingv4"
-version = "0.1.1"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pygame" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/ef/03a9f41a747bd6db04b5e39b0b15585bf795ed0248cf81fbbb2acebee3d7/pingv4-0.1.1.tar.gz", hash = "sha256:7574ea2c003accb1a4d147ed281cb2321617d5346bfc01aa72fa7c8dc320121b", size = 42967, upload-time = "2026-02-05T15:52:11.612Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/3c/5b86b65ae485327ccddcdcb78e8d09cc1463a51ed36e2874ac99adb36a00/pingv4-0.1.2.tar.gz", hash = "sha256:c6babab9833eb2fa88903362f23dece95636a319299bf882246acbbe553fef14", size = 42984, upload-time = "2026-02-09T07:18:06.37Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/c7/ceab2633b9e6bfc9c0d653ce509bbb52f0bf402945250006e47392c85d79/pingv4-0.1.1-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:4ff3c3246e7820bbf2284ff2d811d5cfaeec451c70ed85151cfb242243381b2c", size = 240078, upload-time = "2026-02-05T15:52:08.625Z" },
+    { url = "https://files.pythonhosted.org/packages/af/f5/9537faecad74d439e2a27a47d641abfe4f1d13e4e5c7d26f45661174f3c0/pingv4-0.1.2-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:7b3b65b85be4ec309a7f048f6a278e353c42b26700b9dbd525291521aed49a07", size = 240224, upload-time = "2026-02-09T07:18:03.273Z" },
 ]
 
 [[package]]
@@ -119,7 +119,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=2.4.2" },
-    { name = "pingv4", specifier = "==0.1.1" },
+    { name = "pingv4", specifier = ">=0.1.2" },
     { name = "pygame", specifier = ">=2.6.1" },
     { name = "rich", specifier = ">=14.3.2" },
     { name = "tqdm", specifier = ">=4.67.3" },

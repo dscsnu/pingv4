@@ -64,9 +64,12 @@ class TournamentResult(BaseModel):
 def bot_label(bot_cls):
     try:
         bot = bot_cls(player=pingv4.CellState.Red)
-        return bot.strategy_name, bot.author_name
+        strategy = getattr(bot, "strategy_name", bot_cls.__name__)
+        author = getattr(bot, "author_name", "Unknown")
+        netid = getattr(bot, "author_netid", "unknown")
+        return strategy, author, netid
     except Exception:
-        return bot_cls.__name__, "Unknown"
+        return bot_cls.__name__, "Unknown", "unknown"
 
 
 def read_population_file(path: str) -> List[str]:
@@ -76,13 +79,13 @@ def read_population_file(path: str) -> List[str]:
     with open(path, "r") as f:
         lines = [line.strip() for line in f.readlines()]
 
-    return [l for l in lines if l]
+    # format: filename | netid
+    return [line.split("|")[0].strip() for line in lines if line]
 
 
-def write_population_file(path: str, filenames: List[str]):
-    with open(path, "w") as f:
-        for name in filenames:
-            f.write(f"{name}\n")
+def append_population_file(path: str, filename: str, netid: str):
+    with open(path, "a") as f:
+        f.write(f"{filename} | {netid}\n")
 
 
 # ==================== LOADER ====================
@@ -128,9 +131,10 @@ def load_and_instantiate(
                         and obj.__module__ == module_name
                     ):
                         population[obj] = py_file.name
-                        strat, author = bot_label(obj)
+                        strat, author, netid = bot_label(obj)
                         console.print(
-                            f"  ✓ Loaded [bold green]{strat}[/] by [cyan]{author}[/]"
+                            f"  ✓ Loaded [bold green]{strat}[/] "
+                            f"by [cyan]{author}[/] ([magenta]{netid}[/])"
                         )
 
     console.print(f"\n[bold]Total bots loaded:[/] [green]{len(population)}[/]\n")
@@ -146,13 +150,13 @@ def display_matchup(player_1, player_2, round_num):
     table.add_column(justify="center")
     table.add_column(justify="center")
 
-    p1_strat, p1_author = bot_label(player_1)
-    p2_strat, p2_author = bot_label(player_2)
+    s1, a1, n1 = bot_label(player_1)
+    s2, a2, n2 = bot_label(player_2)
 
     table.add_row(
-        f"{p1_strat}\n({p1_author})",
+        f"{s1}\n({a1} | {n1})",
         "VS",
-        f"{p2_strat}\n({p2_author})",
+        f"{s2}\n({a2} | {n2})",
     )
 
     console.print(
@@ -166,17 +170,21 @@ def display_matchup(player_1, player_2, round_num):
 
 def display_game_result(game_num, winner_class):
     if winner_class:
-        strat, _ = bot_label(winner_class)
-        console.print(f"  Game {game_num}: [bold green]{strat}[/] wins!")
+        strat, _, netid = bot_label(winner_class)
+        console.print(
+            f"  Game {game_num}: [bold green]{strat}[/] "
+            f"([magenta]{netid}[/]) wins!"
+        )
     else:
         console.print(f"  Game {game_num}: [bold yellow]Draw[/]")
 
 
 def display_match_winner(winner, score):
-    strat, _ = bot_label(winner)
+    strat, _, netid = bot_label(winner)
     console.print(
         Panel(
-            f"[bold green]{strat}[/] wins the match! ({score})",
+            f"[bold green]{strat}[/] ([magenta]{netid}[/]) "
+            f"wins the match! ({score})",
             border_style="green",
         )
     )
@@ -205,8 +213,6 @@ def pair(population: dict[type[pingv4.AbstractBot], str]):
         console.print(f"[bold yellow]{'=' * 70}[/]\n")
 
         round_population = list(population.values())
-        write_population_file(POPULATION_FILE, round_population)
-
         round_matches: List[MatchResult] = []
 
         bot_classes = list(population.keys())
@@ -255,18 +261,24 @@ def pair(population: dict[type[pingv4.AbstractBot], str]):
 
                 games_played += 1
 
-            p1_name, _ = bot_label(player_1)
-            p2_name, _ = bot_label(player_2)
+            p1_strat, _, p1_netid = bot_label(player_1)
+            p2_strat, _, p2_netid = bot_label(player_2)
 
             match_winner = None
             if wins_1 > wins_2:
-                match_winner = p1_name
+                match_winner = f"{p1_strat} ({p1_netid})"
                 display_match_winner(player_1, f"{wins_1}-{wins_2}")
+                append_population_file(
+                    POPULATION_FILE, population[player_1], p1_netid
+                )
                 population.pop(player_2, None)
 
             elif wins_2 > wins_1:
-                match_winner = p2_name
+                match_winner = f"{p2_strat} ({p2_netid})"
                 display_match_winner(player_2, f"{wins_2}-{wins_1}")
+                append_population_file(
+                    POPULATION_FILE, population[player_2], p2_netid
+                )
                 population.pop(player_1, None)
 
             else:
@@ -291,22 +303,33 @@ def pair(population: dict[type[pingv4.AbstractBot], str]):
 
                 match choice:
                     case 1:
-                        match_winner = p1_name
+                        match_winner = f"{p1_strat} ({p1_netid})"
+                        append_population_file(
+                            POPULATION_FILE, population[player_1], p1_netid
+                        )
                         population.pop(player_2, None)
                     case 2:
-                        match_winner = p2_name
+                        match_winner = f"{p2_strat} ({p2_netid})"
+                        append_population_file(
+                            POPULATION_FILE, population[player_2], p2_netid
+                        )
                         population.pop(player_1, None)
                     case 0:
                         population.pop(player_1, None)
                         population.pop(player_2, None)
                     case -1:
-                        pass
+                        append_population_file(
+                            POPULATION_FILE, population[player_1], p1_netid
+                        )
+                        append_population_file(
+                            POPULATION_FILE, population[player_2], p2_netid
+                        )
 
             round_matches.append(
                 MatchResult(
                     match_number=match_num,
-                    player_1=p1_name,
-                    player_2=p2_name,
+                    player_1=f"{p1_strat} ({p1_netid})",
+                    player_2=f"{p2_strat} ({p2_netid})",
                     wins_1=wins_1,
                     wins_2=wins_2,
                     games=games_log,
@@ -327,13 +350,13 @@ def pair(population: dict[type[pingv4.AbstractBot], str]):
         round_num += 1
 
     champion = next(iter(population))
-    champ_name, champ_author = bot_label(champion)
+    champ_strat, champ_author, champ_netid = bot_label(champion)
 
     console.print(
         Panel.fit(
             f"[bold gold1]👑 CHAMPION 👑[/]\n\n"
-            f"[bold cyan]{champ_name}[/]\n"
-            f"[white]by {champ_author}[/]",
+            f"[bold cyan]{champ_strat}[/]\n"
+            f"[white]{champ_author}[/] ([magenta]{champ_netid}[/])",
             border_style="gold1",
         )
     )
@@ -342,7 +365,7 @@ def pair(population: dict[type[pingv4.AbstractBot], str]):
 
     tournament_result = TournamentResult(
         started_at=datetime.utcnow(),
-        champion=champ_name,
+        champion=f"{champ_strat} ({champ_netid})",
         rounds=tournament_rounds,
     )
 
