@@ -30,6 +30,7 @@ console = Console()
 
 # ==================== Pydantic MODELS ====================
 
+
 class GameResult(BaseModel):
     game_number: int
     winner: Optional[str]
@@ -59,6 +60,7 @@ class TournamentResult(BaseModel):
 
 # ==================== HELPERS ====================
 
+
 def bot_label(bot_cls):
     try:
         bot = bot_cls(player=pingv4.CellState.Red)
@@ -85,13 +87,13 @@ def write_population_file(path: str, filenames: List[str]):
 
 # ==================== LOADER ====================
 
+
 def load_and_instantiate(
     directory: str = SUBMISSION_PATH,
     base_class: Type = BOT_CLASS,
     exclude_files: List[str] = IGNORE,
     population_file: str = POPULATION_FILE,
 ) -> dict[type[Any], str]:
-
     directory_path = Path(directory)
     requested_files = read_population_file(population_file)
 
@@ -137,6 +139,7 @@ def load_and_instantiate(
 
 # ==================== DISPLAY ====================
 
+
 def display_matchup(player_1, player_2, round_num):
     table = Table(show_header=False, box=box.DOUBLE_EDGE, border_style="bright_blue")
     table.add_column(justify="center")
@@ -180,6 +183,7 @@ def display_match_winner(winner, score):
 
 
 # ==================== TOURNAMENT ====================
+
 
 def pair(population: dict[type[pingv4.AbstractBot], str]):
     round_num = 1
